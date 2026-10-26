@@ -1,0 +1,13 @@
+# local test artifacts
+_test*
+_testprofile/
+_*.png
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# secrets
+.env
+.env.*

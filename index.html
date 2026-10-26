@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="day">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta id="metaTheme" name="theme-color" content="#eff5f2">
+  <meta name="description" content="空中飞人 · 上头观察室：一款黑色喜剧式外汇模拟交易游戏，收录多场金融危机档案。">
+  <title>空中飞人 · 上头观察室</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon.png">
+  <link rel="stylesheet" href="./styles.css?v=1.0.0">
+  <script defer src="./data.js?v=1.0.0"></script>
+  <script defer src="./chart.js?v=1.0.0"></script>
+  <script defer src="./audio.js?v=1.0.0"></script>
+  <script defer src="./engine.js?v=1.0.0"></script>
+  <script defer src="./ui.js?v=1.0.0"></script>
+  <script defer src="./app.js?v=1.0.0"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark"><img src="./assets/icon.svg" alt="空中飞人头像" width="40" height="40"></span>
+        <div><strong>空中飞人</strong><small>上头观察室</small></div>
+      </div>
+      <div class="top-center"><span>本地单机版</span><span class="top-dot"></span><span>四种模式 · 自动存档</span></div>
+      <div class="top-actions">
+        <span class="session-pill"><span class="live-dot"></span> <span id="sessionLabel">模拟账户</span></span>
+        <button id="shareBtn" class="text-button" type="button"><span class="btn-ico">📤</span><span class="btn-txt">事故报告</span></button>
+        <button id="achBtn" class="text-button" type="button"><span class="btn-ico">📋</span><span class="btn-txt">病历</span></button>
+        <button id="settingsBtn" class="text-button" type="button"><span class="btn-ico">⚙</span><span class="btn-txt">设置</span></button>
+        <button id="tutorialBtn" class="text-button" type="button">新手教程</button>
+        <button id="resetBtn" class="text-button" type="button">重新开始</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="balance-strip" aria-label="账户概览">
+        <div class="balance-lead">
+          <div class="eyebrow"><span class="owner-label"><span id="accountOwner">大肥鱼</span>的事故小账本</span> <span id="accountModeName" class="account-mode-chip">模拟数据账户</span><span id="difficultyBadge" class="difficulty-chip">标准</span><span id="contractChip" class="contract-chip hidden"></span></div>
+          <div class="balance-title">账户总权益 <span id="equity" class="money-large">$10,000.00</span><button id="helpBtn" class="help-chip" type="button" title="小白说明" aria-label="打开小白说明">?</button></div>
+          <p>各模式独立账户；亏完不影响其他模式，真贴心。</p>
+          <p class="cashout-line">现在收手：<strong id="cashoutValue">$10,000.00</strong><span id="peakNote"> · 本局峰值 $10,000.00</span><button id="cashoutBtn" class="cashout-button" type="button">收手离场</button></p>
+          <p id="contractLine" class="contract-line hidden"></p>
+        </div>
+        <div class="metric"><span>可用余额</span><strong id="cash">$10,000.00</strong></div>
+        <div class="metric"><span>浮动盈亏</span><strong id="floating">$0.00</strong></div>
+        <div class="metric"><span>已用保证金</span><strong id="usedMargin">$0.00</strong></div>
+        <div class="metric"><span>待还贷款（含利息）</span><strong id="debt">$0.00</strong></div>
+      </section>
+
+      <div class="workspace">
+        <aside class="panel market-panel">
+          <div class="panel-heading"><div><span class="section-kicker">MARKET WATCH</span><h2>货币对</h2></div><span class="heading-glyph" aria-hidden="true">✳</span></div>
+          <div id="pairList" class="pair-list" role="listbox" aria-label="选择货币对"></div>
+          <div class="market-note"><span aria-hidden="true">✦</span><span>涨了做多，跌了做空；亏了怪市场。</span></div>
+        </aside>
+
+        <section class="center-column">
+          <div class="panel chart-panel">
+            <div class="chart-topline">
+              <div>
+                <span class="section-kicker">PRICE CHART</span>
+                <div class="pair-title"><h1 id="pairTitle">EUR / USD</h1><span id="modeBadge" class="mode-badge">模拟行情</span></div>
+                <div class="pair-sub" id="pairName">欧元 / 美元</div>
+              </div>
+              <div class="quote-block"><strong id="currentPrice">1.08742</strong><span id="priceChange" class="positive">+0.00%</span></div>
+            </div>
+            <div class="chart-controls">
+              <div class="segmented" role="group" aria-label="数据模式">
+                <button id="simMode" type="button" class="active">模拟数据</button>
+                <button id="realMode" type="button">真实数据</button>
+                <button id="battleMode" type="button">经典战役</button>
+                <button id="challengeMode" type="button">挑战模式</button>
+              </div>
+              <label class="mobile-pair-control" for="mobilePairSelect"><span>货币对</span><select id="mobilePairSelect" aria-label="选择货币对"></select></label>
+              <div class="playback-controls">
+                <span id="dataStatus">每 1.5 秒更新</span>
+                <button id="replayBtn" class="outline-button hidden" type="button">回到起点</button>
+                <button id="nextDayBtn" class="outline-button hidden" type="button">下一交易日 →</button>
+                <button id="playBtn" class="outline-button hidden" type="button">自动播放</button>
+              </div>
+            </div>
+
+            <div id="challengeBar" class="challenge-bar hidden">
+              <div><span class="section-kicker">DAILY CASE</span><strong id="challengeStatus">每日三次，一万元开局</strong><small id="challengeAttempts">正在读取挑战记录…</small></div>
+              <div class="challenge-actions">
+                <button id="challengeStartBtn" class="primary-button" type="button">开始挑战</button>
+                <button id="challengeRetireBtn" class="retire-button" type="button">金盆洗手</button>
+                <button id="challengeRankBtn" class="outline-button" type="button">今日榜单</button>
+              </div>
+            </div>
+
+            <div id="battleShelf" class="battle-shelf hidden">
+              <div class="battle-shelf-head"><div><span class="section-kicker">CASE FILES</span><h2 id="battleShelfTitle">选择一份事故档案</h2></div><button id="battleChooseBtn" class="outline-button hidden" type="button">选择其他档案</button></div>
+              <p id="battleInfo" class="battle-info">选择一份档案，使用当年的日度参考汇率逐日模拟。</p>
+              <div id="battleList" class="battle-grid"></div>
+            </div>
+
+            <div id="realRangeBar" class="range-picker hidden">
+              <div class="seg-mini" id="rangeQuickSeg" role="group" aria-label="快捷区间">
+                <button type="button" data-days="30">30天</button><button type="button" data-days="90">90天</button><button type="button" data-days="180">180天</button><button type="button" data-days="365">365天</button><button type="button" data-days="600">600天</button><button type="button" data-days="ytd">今年</button>
+              </div>
+              <input id="rangeStart" type="date" aria-label="起始日期"><span class="arrow">→</span><input id="rangeEnd" type="date" aria-label="结束日期"><button id="rangeApplyBtn" class="outline-button" type="button">应用</button>
+            </div>
+
+            <div id="playbackTools" class="playback-tools hidden">
+              <div class="seg-mini" id="tfSeg" role="group" aria-label="K线周期"><button type="button" data-tf="1d" class="active">日K</button><button type="button" data-tf="1w">周K</button><button type="button" data-tf="1M">月K</button></div>
+              <div class="chart-progress-row"><span id="progressDateLabel">—</span><input id="progressBar" class="chart-progress" type="range" min="0" max="0" value="0" step="1" aria-label="回放进度"></div>
+              <span id="rangeDaysNote"></span>
+            </div>
+            <div id="rangeStats" class="range-stats hidden"></div>
+
+            <div id="activeEvents" class="active-events hidden"></div>
+
+            <div class="chart-wrap">
+              <canvas id="chart" aria-label="汇率价格走势图"></canvas>
+              <div id="chartLoading" class="chart-loading hidden">正在读取历史汇率…</div>
+            </div>
+
+            <div id="newsTicker" class="news-ticker">
+              <span class="ticker-tag" id="tickerTag">快讯</span>
+              <div class="ticker-body"><span class="ticker-track flat" id="tickerTrack">等待市场消息…</span></div>
+              <button id="newsCenterBtn" class="text-button ticker-more" type="button">新闻中心</button>
+            </div>
+            <div class="chart-foot"><span><i class="legend-line"></i><span id="chartLegend">模拟走势 · 仅供游戏使用</span></span><span id="chartDate">当前价格</span></div>
+          </div>
+
+          <div class="panel positions-panel">
+            <div class="panel-heading row-heading"><div><span class="section-kicker">OPEN POSITIONS</span><h2>持仓 <span id="positionCount" class="count-pill">0</span></h2></div><span id="riskHint" class="quiet-note">暂无持仓</span></div>
+            <div id="positions" class="positions-list"></div>
+          </div>
+
+          <div class="panel history-panel">
+            <div class="panel-heading row-heading"><div><span class="section-kicker">TRADE LOG</span><h2>最近结算</h2></div><button id="historyToggle" class="text-button" type="button">展开记录</button></div>
+            <div id="history" class="history-list hidden"></div>
+          </div>
+        </section>
+
+        <aside class="right-column">
+          <section class="panel order-panel">
+            <div class="panel-heading"><div><span class="section-kicker">NEW ORDER</span><h2>手痒了？</h2></div><span class="order-decoration" aria-hidden="true">✿</span></div>
+            <p id="runClosedNote" class="run-closed-note hidden">本局已收手。点余额旁「再来一局」。</p>
+            <p id="contractLimitNote" class="run-closed-note hidden">合同交易次数已用完。先收手，或者重置本局。</p>
+            <div id="practiceHint" class="practice-hint hidden" role="status"><span class="practice-kicker">第一次试水</span><p id="practiceText"></p></div>
+            <div class="order-pair"><span>交易货币对</span><strong id="orderPair">EUR / USD</strong></div>
+            <div class="compact-fields">
+              <div>
+                <label class="field-label" for="marginInput">投入保证金 <span>USD</span></label>
+                <div class="input-shell"><span>$</span><input id="marginInput" type="number" min="10" step="10" value="500" inputmode="decimal"><button id="maxBtn" type="button">MAX</button></div>
+              </div>
+              <div>
+                <div class="range-label"><label for="leverageRange">杠杆倍数</label><strong id="leverageValue">20×</strong></div>
+                <input id="leverageRange" type="range" min="1" max="100" value="20">
+                <div id="leverageTicks" class="range-ticks"><span>1×</span><span>25×</span><span>50×</span><span>75×</span><span>100×</span></div>
+              </div>
+            </div>
+            <div id="advancedOrder" class="advanced-order hidden">
+              <div class="advanced-head"><span>进阶交易</span><small>不填就不设置</small></div>
+              <div class="advanced-fields">
+                <div class="price-field"><label for="stopPriceInput">止损价</label><input id="stopPriceInput" type="number" min="0" step="any" inputmode="decimal" placeholder="不设"></div>
+                <div class="price-field"><label for="takePriceInput">止盈价</label><input id="takePriceInput" type="number" min="0" step="any" inputmode="decimal" placeholder="不设"></div>
+              </div>
+              <p class="advanced-hint">止损必须比爆仓价更早触发；跳空时可能按更差的价成交。</p>
+            </div>
+            <div class="order-preview">
+              <div><span>名义仓位</span><strong id="notional">$10,000.00</strong></div>
+              <div><span>开仓手续费</span><strong id="tradeFee">$1.50</strong></div>
+              <div><span>开仓价反向波动</span><strong id="riskPercent">4.00%</strong></div>
+            </div>
+            <div class="order-balance">
+              <div><span>可用余额</span><strong id="orderCash">$10,000.00</strong></div>
+              <div><span>已用保证金</span><strong id="orderMargin">$0.00</strong></div>
+            </div>
+            <div id="orderPosition" class="order-position hidden">
+              <div class="order-pos-head"><span>当前持仓</span><strong id="orderPosDir">做多</strong></div>
+              <div id="orderPosPnl" class="order-pos-pnl">+$0.00</div>
+              <small id="orderPosMeta"></small>
+            </div>
+            <p id="lastOneNote" class="last-one-note hidden"></p>
+            <div class="trade-buttons">
+              <button id="longBtn" type="button" class="trade-button long"><span>↗</span> 做多 / 买入</button>
+              <button id="shortBtn" type="button" class="trade-button short"><span>↘</span> 做空 / 卖出</button>
+            </div>
+            <p class="order-note">杠杆越高，开仓手续费越高。跳空会替你按下退出键。</p>
+          </section>
+
+          <section class="panel loan-panel">
+            <div class="loan-head"><img class="loan-mascot" src="./assets/dafeiyu.svg" alt="大肥鱼" width="56" height="56"><div><span class="section-kicker">FAT FISH CREDIT</span><h2>肥鱼信贷</h2></div></div>
+            <p id="loanInfo">最多借 $200,000。利息按天算，尊严按次算。模拟数据每 30 秒计一天，还清后可再次借入。</p>
+            <div class="loan-actions"><button id="borrowBtn" type="button">借一笔</button><button id="repayBtn" type="button">还债</button></div>
+          </section>
+
+          <div class="side-disclaimer">
+            这是游戏，不提供真实交易。真实数据为历史日度参考汇率，不是实时报价。本作是黑色喜剧；现实里的杠杆不会给你重开键。
+            <a href="https://frankfurter.dev/" target="_blank" rel="noopener noreferrer">数据来源：Frankfurter ↗</a>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="narrator" class="narrator" role="status" aria-live="polite"><span>🎙 旁白</span><p id="narratorText"></p></div>
+
+  <div id="newsFloat" class="news-float" role="status">
+    <button id="newsFloatClose" class="nf-close" aria-label="关闭快讯" type="button">×</button>
+    <span class="nf-tag" id="nfTag">快讯</span><h4 id="nfTitle"></h4><p id="nfBody"></p><span class="nf-date" id="nfDate"></span>
+  </div>
+
+  <div id="modal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button id="modalClose" class="modal-x" aria-label="关闭弹窗" type="button">×</button>
+      <div id="modalIcon" class="modal-icon">✦</div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalMessage"></p>
+      <div id="modalDetail" class="modal-detail"></div>
+      <div id="modalInputWrap" class="modal-input-wrap hidden">
+        <label id="modalInputLabel" for="modalInput"></label>
+        <div class="input-shell"><span>$</span><input id="modalInput" type="number" min="1" step="1" inputmode="decimal"></div>
+      </div>
+      <div id="modalRiskActions" class="modal-risk-actions hidden">
+        <button id="halfCloseBtn" type="button">平掉一半</button>
+        <button id="addMarginBtn" type="button">追加保证金</button>
+        <button id="loanMarginBtn" type="button">借款补仓</button>
+      </div>
+      <button id="modalExtraBtn" class="text-button modal-extra hidden" type="button"></button>
+      <div class="modal-actions"><button id="modalCancel" class="outline-button" type="button">取消</button><button id="modalConfirm" class="primary-button" type="button">知道了</button></div>
+    </div>
+  </div>
+
+  <div id="newsCenter" class="modal-backdrop hidden" role="presentation">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newsCenterTitle">
+      <button id="newsCenterClose" class="modal-x" aria-label="关闭新闻中心" type="button">×</button>
+      <div class="modal-icon">✦</div><h2 id="newsCenterTitle">新闻中心</h2>
+      <p>本次会话收到的全部市场快讯。</p>
+      <div id="newsCenterList" class="news-center-list"></div>
+      <div class="modal-actions"><button id="newsCenterOk" class="primary-button" type="button">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="achModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal ach-modal" role="dialog" aria-modal="true" aria-labelledby="achTitle">
+      <button id="achClose" class="modal-x" aria-label="关闭病历" type="button">×</button>
+      <div class="modal-icon">📋</div><h2 id="achTitle">病历本</h2>
+      <div class="ach-toolbar"><p id="achProgressLine" class="ach-progress-line">已确诊 0 / 13</p><button id="openCasesBtn" class="outline-button ach-cases-btn" type="button">病历库 <span id="caseCount">0</span></button></div>
+      <div id="achGrid" class="ach-grid"></div>
+      <div class="modal-actions"><button id="achOk" class="primary-button" type="button">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="shareModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <button id="shareClose" class="modal-x" aria-label="关闭分享" type="button">×</button>
+      <div class="modal-icon">📤</div><h2 id="shareTitle">事故报告</h2>
+      <div class="share-preview"><div id="sharePlaceholder" class="share-placeholder">正在生成事故报告…</div><img id="shareImg" class="hidden" alt="事故报告"></div>
+      <p class="share-note">报告在本机生成，不会上传任何数据。建议打印出来贴在电脑旁。</p>
+      <div class="modal-actions share-actions"><button id="shareDownloadBtn" class="primary-button hidden" type="button">下载报告</button><button id="shareCloseBtn" class="outline-button" type="button">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button id="settingsClose" class="modal-x" aria-label="关闭设置" type="button">×</button>
+      <div class="modal-icon">⚙</div><h2 id="settingsTitle">设置</h2>
+      <div class="settings-rows">
+        <div class="settings-row"><div class="settings-label">我的名字<small>显示在账户卡和结算里，最多 12 个字</small></div><input id="nicknameInput" class="nickname-input" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="大肥鱼"></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">音效<small>开仓、平仓、爆仓与确诊提示音</small></div><label class="switch"><input id="sfxToggle" type="checkbox"><span class="slider"></span></label></div>
+        <div class="settings-row"><div class="settings-label">音效音量</div><input id="sfxVolume" class="vol-slider" type="range" min="0" max="100" step="1"></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">音乐<small>不内置音乐，导入本地音频文件后循环播放</small></div><label class="switch"><input id="musicToggle" type="checkbox"><span class="slider"></span></label></div>
+        <div class="settings-row"><div class="settings-label">音乐音量</div><input id="musicVolume" class="vol-slider" type="range" min="0" max="100" step="1"></div>
+        <div class="settings-row settings-col"><div class="settings-label">导入本地音乐<small id="musicStatus">尚未导入音乐（音频仅保存在本机浏览器）</small></div><div class="music-actions"><label class="outline-button music-file-btn" for="musicFile">选择文件<input id="musicFile" type="file" accept="audio/*"></label><button id="musicPreviewBtn" class="outline-button" type="button">试听</button><button id="musicClearBtn" class="outline-button" type="button">清除</button></div></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">市场新闻<small>跑马灯与滑入快讯，关闭后不再生成模拟新闻</small></div><label class="switch"><input id="newsToggle" type="checkbox"><span class="slider"></span></label></div>
+        <div class="settings-row"><div class="settings-label">新闻频率</div><div class="seg-mini" id="newsFreqSeg" role="group" aria-label="新闻频率"><button type="button" data-freq="low">低</button><button type="button" data-freq="mid">中</button><button type="button" data-freq="high">高</button></div></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">进阶交易（止损 / 止盈）<small>默认关闭；开启后下单可以填止损价和止盈价</small></div><label class="switch"><input id="advancedToggle" type="checkbox"><span class="slider"></span></label></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">安全措施<small id="difficultyHint">标准：最高 100×，开放贷款</small></div><div class="seg-mini" id="difficultySeg" role="group" aria-label="安全措施"><button type="button" data-difficulty="safe">安全网</button><button type="button" data-difficulty="standard">标准</button></div></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">外观</div><div class="seg-mini" id="themeSeg" role="group" aria-label="白天或夜间模式"><button type="button" data-theme="day">☀ 白天</button><button type="button" data-theme="night">☾ 夜间</button></div></div>
+      </div>
+      <p class="settings-scroll-hint">向下滚动还能改安全措施与外观。</p>
+      <div class="modal-actions"><button id="settingsReset" class="outline-button" type="button">恢复默认</button><button id="settingsDone" class="primary-button" type="button">完成</button></div>
+    </div>
+  </div>
+
+  <div id="welcome" class="modal-backdrop hidden" role="presentation">
+    <div class="modal welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="modal-icon">♡</div>
+      <span class="section-kicker">WELCOME TO THE AIR</span>
+      <h2 id="welcomeTitle">第一次来当空中飞人？</h2>
+      <p>这里不教你赚钱，只负责记录你怎么上头。4 步认识做多、杠杆、爆仓和收手，然后先免费试一笔——这一笔不算合同，练完再决定怎么玩。</p>
+      <div class="welcome-actions"><button id="newPlayerBtn" class="primary-button" type="button">先学怎么输</button><button id="veteranBtn" class="outline-button" type="button">直接上头</button></div>
+      <button id="welcomeHelpBtn" class="text-button welcome-help" type="button">先看三句话，再决定要不要送</button>
+    </div>
+  </div>
+
+  <div id="tutorial" class="modal-backdrop hidden" role="presentation">
+    <div class="modal tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <button id="tutorialClose" class="modal-x" type="button" aria-label="退出教程">×</button>
+      <div id="tutorialStep" class="tutorial-step">1 / 5</div>
+      <div id="tutorialIcon" class="modal-icon">↗</div>
+      <h2 id="tutorialTitle">做多</h2>
+      <p id="tutorialText"></p>
+      <div id="tutorialExample" class="tutorial-example"></div>
+      <div class="tutorial-actions"><button id="tutorialBack" class="outline-button" type="button">上一步</button><button id="tutorialNext" class="primary-button" type="button">下一步</button></div>
+      <button id="tutorialSkip" class="text-button" type="button">退出教程</button>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <button id="helpClose" class="modal-x" aria-label="关闭小白说明" type="button">×</button>
+      <div class="modal-icon">?</div>
+      <h2 id="helpTitle">三句话看懂</h2>
+      <p class="help-lead">这不是外汇教学，也不是真实交易。它是一台用汇率当骰子的杠杆下注模拟器。</p>
+      <div class="help-three">
+        <div><b>01</b><span>杠杆放大的是仓位，不是胜率。20 倍杠杆反向约 4% 爆仓，100 倍反向约 0.8% 爆仓。</span></div>
+        <div><b>02</b><span>开仓先扣手续费；借钱还有利息。你还没开始赚，钱已经少了一点。</span></div>
+        <div><b>03</b><span>这游戏没有通关，只有两种结束：你收手，或者它帮你收手。</span></div>
+      </div>
+      <p class="help-safe">第一次玩，余额旁会显示「安全网」：最高 20×、不开放贷款、不出现「最后一把」。想玩大的，去设置里撤掉。</p>
+      <h3>五个数字</h3>
+      <dl class="help-terms">
+        <dt>账户总权益</dt><dd>你真正拥有的钱。权益 = 可用余额 + 已用保证金 + 浮动盈亏 − 待还贷款。</dd>
+        <dt>可用余额</dt><dd>还没被锁住的钱，能拿来开新仓。</dd>
+        <dt>浮动盈亏</dt><dd>现在的持仓如果立刻平仓，会赚或亏多少；没平仓就还会跳。</dd>
+        <dt>已用保证金</dt><dd>开仓时锁住的钱，不是手续费；平仓后会回来。</dd>
+        <dt>待还贷款</dt><dd>欠肥鱼信贷的钱，会减少权益，还会生利息。</dd>
+      </dl>
+      <h3>一笔交易（$500 保证金，20 倍）</h3>
+      <p>名义仓位 $10,000，开仓手续费 $1.50。价格涨 1%，你赚 $100；价格跌 4%，你亏 $400，正好碰到保证金 80% 的爆仓线。</p>
+      <h3>四个模式</h3>
+      <ul class="help-list">
+        <li><b>模拟数据</b>：每 1.5 秒一根新 K 线，先在这里练手。</li>
+        <li><b>真实数据</b>：历史日度汇率，点“下一交易日”才走一天。</li>
+        <li><b>经典战役</b>：14 份金融危机档案，从事件前几周开始回放。</li>
+        <li><b>每日挑战</b>：每天 3 次，$10,000 开局，不允许贷款。</li>
+      </ul>
+      <h3>最容易误解的三件事</h3>
+      <ul class="help-list">
+        <li><b>余额变少 ≠ 钱没了</b>：一部分变成了锁住的保证金，真正没的是手续费。</li>
+        <li><b>杠杆 ≠ 贷款</b>：杠杆放大仓位；贷款是肥鱼信贷另外借给你的钱。</li>
+        <li><b>爆仓 ≠ 归零</b>：是保证金亏到 80% 被强平；跳空时亏损可能超过保证金。</li>
+      </ul>
+      <p class="help-term-hint">看到虚线下划线？点一下，会弹出这个词的解释。</p>
+      <p class="help-foot">最后一句：这里没有安全网，只有你自己按下的退出键。现实中也是。</p>
+      <div class="modal-actions"><button id="helpOk" class="primary-button" type="button">知道了，去送</button></div>
+    </div>
+  </div>
+
+  <div id="casesModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal cases-modal" role="dialog" aria-modal="true" aria-labelledby="casesTitle">
+      <button id="casesClose" class="modal-x" aria-label="关闭病历库" type="button">×</button>
+      <div class="modal-icon">🗂</div>
+      <h2 id="casesTitle">病历库</h2>
+      <p id="casesSummary" class="cases-summary">共 0 份病历。每局收手或穿仓后会自动建档。</p>
+      <div class="cases-toolbar"><button id="openEndingsBtn" class="outline-button cases-endings-btn" type="button">结局图鉴 <span id="endingsCount">0</span></button></div>
+      <div class="seg-mini cases-filter" id="casesFilter" role="group" aria-label="筛选病历">
+        <button type="button" data-mode="all" class="active">全部</button>
+        <button type="button" data-mode="sim">模拟</button>
+        <button type="button" data-mode="real">真实</button>
+        <button type="button" data-mode="battle">战役</button>
+        <button type="button" data-mode="challenge">挑战</button>
+      </div>
+      <div id="casesList" class="cases-list"></div>
+      <div class="modal-actions">
+        <button id="casesClear" class="outline-button" type="button">清空病历</button>
+        <button id="casesDone" class="primary-button" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="endingsModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal endings-modal" role="dialog" aria-modal="true" aria-labelledby="endingsTitle">
+      <button id="endingsClose" class="modal-x" aria-label="关闭结局图鉴" type="button">×</button>
+      <div class="modal-icon">▣</div>
+      <h2 id="endingsTitle">结局图鉴</h2>
+      <p id="endingsSummary" class="endings-summary">已解锁 0 / 14</p>
+      <div id="endingsList" class="endings-list"></div>
+      <div class="modal-actions"><button id="endingsDone" class="primary-button" type="button">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="contractModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal contract-modal" role="dialog" aria-modal="true" aria-labelledby="contractTitle">
+      <button id="contractClose" class="modal-x" aria-label="关闭合同选择" type="button">×</button>
+      <div class="modal-icon">✎</div>
+      <span class="contract-kicker">CHOOSE YOUR CONTRACT</span>
+      <h2 id="contractTitle">这一局，你打算怎么活？</h2>
+      <p class="contract-intro">合同只在模拟模式生效。目标完成后可以收手，也可以继续贪；失败照样进病历。</p>
+      <div id="contractList" class="contract-list"></div>
+      <p class="contract-note">不想签合同就选自由模式，按现在的规则玩。</p>
+    </div>
+  </div>
+
+  <div id="eventModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal event-modal" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
+      <span id="eventKicker" class="contract-kicker">CONTRACT EVENT</span>
+      <h2 id="eventTitle"></h2>
+      <p id="eventText" class="event-text"></p>
+      <div id="eventChoices" class="event-choices"></div>
+    </div>
+  </div>
+
+  <div id="glossaryPop" class="glossary-pop hidden" role="dialog" aria-live="polite" data-no-terms>
+    <button id="glossaryClose" class="glossary-close" type="button" aria-label="关闭术语解释">×</button>
+    <span class="glossary-kicker">术语解释</span>
+    <h3 id="glossaryTerm"></h3>
+    <p id="glossaryDef"></p>
+    <p id="glossaryExample" class="glossary-example"></p>
+  </div>
+
+  <noscript><p style="padding:24px;font-family:sans-serif">这个游戏需要启用 JavaScript。</p></noscript>
+</body>
+</html>
