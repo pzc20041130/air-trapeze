@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="空中飞人">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2c5a52"/>
+      <stop offset="0.55" stop-color="#1d3f3c"/>
+      <stop offset="1" stop-color="#132c2e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.76" cy="0.18" r="0.7">
+      <stop offset="0" stop-color="#bef0d4" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#bef0d4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#bg)"/>
+  <rect width="256" height="256" rx="58" fill="url(#glow)"/>
+  <path d="M74 0 84 90M182 0 172 90" stroke="#9fdcc0" stroke-width="3" opacity="0.45"/>
+  <path d="M64 92h128" stroke="#bef0d4" stroke-width="8" stroke-linecap="round"/>
+  <g fill="none" stroke="#f2fbf6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M128 144 116 98M128 144l12-46" stroke-width="6"/>
+    <path d="M128 144v34" stroke-width="7"/>
+    <path d="M128 178 108 202l4 18M128 178l20 24-4 18" stroke-width="7"/>
+  </g>
+  <circle cx="128" cy="128" r="16" fill="#f2fbf6"/>
+  <g opacity="0.95">
+    <path d="M42 224v-26" stroke="#8fddb1" stroke-width="5" stroke-linecap="round"/>
+    <rect x="34" y="202" width="16" height="15" rx="3" fill="#8fddb1"/>
+    <path d="M214 222v-30" stroke="#f19aa8" stroke-width="5" stroke-linecap="round"/>
+    <rect x="206" y="198" width="16" height="17" rx="3" fill="#f19aa8"/>
+  </g>
+  <path d="M20 236c34-8 54-8 108-8s74 0 108 8" fill="none" stroke="#bef0d4" stroke-width="2" opacity="0.12"/>
+</svg>
