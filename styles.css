@@ -643,6 +643,32 @@ html[data-theme="night"] .loan-actions button:hover:not(:disabled) { background:
 .news-float p { font-size: 11px; line-height: 1.65; color: var(--text-muted); white-space: pre-line; }
 .nf-date { display: block; margin-top: 8px; font-family: var(--font-mono); font-size: 9.5px; color: var(--text-dim); }
 
+.mobile-trade-bar { display: none; }
+@media (max-width: 720px) {
+  body { padding-bottom: 92px; }
+  .mobile-trade-bar {
+    display: grid; gap: 6px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 95;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(250, 252, 249, 0.97); border-top: 1px solid var(--border);
+    box-shadow: 0 -14px 32px -24px rgba(31, 65, 65, 0.45);
+  }
+  .mobile-trade-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 9px; color: var(--text-dim); }
+  .mobile-trade-status b { font-family: var(--font-mono); color: var(--text-deep); font-size: 10px; }
+  .mobile-position-btn { border: 0; background: transparent; padding: 2px 0; font-size: 9px; color: var(--accent-deep); font-weight: 800; }
+  .mobile-trade-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mobile-trade-btn { border: 0; border-radius: 10px; padding: 12px 10px; font-size: 12px; font-weight: 900; }
+  .mobile-trade-btn.long { background: var(--tint-green); color: var(--green-text); }
+  .mobile-trade-btn.short { background: var(--tint-red); color: var(--short-text); }
+  .mobile-trade-btn:disabled { opacity: 0.4; }
+  .news-float {
+    top: auto; left: 12px; right: 12px; bottom: 88px; width: auto;
+    transform: translateY(18px);
+  }
+  .news-float.show { transform: translateY(0); }
+  .toast { bottom: 96px; }
+  .narrator { left: 12px; right: 12px; bottom: 96px; width: auto; z-index: 94; }
+}
+
 /* ============ 弹窗 ============ */
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 100; padding: 24px;
@@ -913,9 +939,9 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
   .ach-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-row { gap: 10px; }
   .vol-slider { width: 110px; }
-  .news-float { top: 72px; bottom: auto; right: 10px; width: calc(100vw - 20px); }
-  .toast { bottom: 80px; }
-  .narrator { left: 12px; right: 12px; bottom: 16px; width: auto; }
+  .news-float { top: auto; bottom: 88px; left: 12px; right: 12px; width: auto; }
+  .toast { bottom: 96px; }
+  .narrator { left: 12px; right: 12px; bottom: 96px; width: auto; }
 }
 
 @media (max-width: 390px) {
@@ -982,7 +1008,10 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 .contract-kicker { font-size: 9px; letter-spacing: 0.14em; font-weight: 800; color: var(--accent-deep); }
 .contract-modal h2 { margin-top: 6px; }
 .contract-intro { margin-top: 8px; font-size: 11.5px; line-height: 1.7; color: var(--text-muted); }
-.contract-list { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.contract-list { margin-top: 16px; display: grid; grid-template-columns: 1fr; gap: 10px; }
+.contract-stepper { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.contract-stepper .outline-button { padding: 7px 12px; font-size: 10.5px; }
+.contract-progress { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
 .contract-card {
   border: 1px solid var(--border); border-radius: 14px; background: var(--surface-tint);
   padding: 14px 15px; display: flex; flex-direction: column; gap: 7px;

@@ -30,6 +30,7 @@
   let practicePending = false;
   let tutorialPractice = false;
   let tickerKey = '';
+  let contractIndex = 0;
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
@@ -132,6 +133,7 @@
     renderChallenge();
     renderTicker();
     renderActiveEvents();
+    syncMobileBar();
     drawChart();
     scheduleTermify();
   }
@@ -222,8 +224,23 @@
     $('repayBtn').disabled = s.mode === 'challenge' || s.debt <= 0 || closed;
   }
 
-  function renderOrder() {
+  function syncMobileBar() {
     const s = E.state;
+    $('mobileCash').textContent = D.money(s.cash);
+    const positions = s.positions.filter(pos => pos.pair === s.pair);
+    if (!positions.length) {
+      $('mobilePositionBtn').textContent = '空仓';
+    } else {
+      const pnl = positions.reduce((sum, pos) => sum + E.positionPnl(pos), 0);
+      const sameSide = positions.every(pos => pos.side === positions[0].side);
+      const direction = sameSide ? (positions[0].side === 1 ? '做多' : '做空') : '混合';
+      $('mobilePositionBtn').textContent = `${direction} ${positions.length} 笔 ${D.signedMoney(pnl)}`;
+    }
+    $('mobileLongBtn').disabled = $('longBtn').disabled;
+    $('mobileShortBtn').disabled = $('shortBtn').disabled;
+  }
+
+  function renderOrder() {    const s = E.state;
     const safe = E.isSafe();
     const maxLev = E.maxLeverage();
     const closed = !!s.runClosed;
@@ -720,6 +737,9 @@
         openContractPicker();
       }, 240);
     }
+    if (E.state.contract?.eventReady && !modalOpen && !modalQueue.length && !practicePending) {
+      setTimeout(() => E.maybeContractEvent(), 140);
+    }
   }
 
   function openRiskModal({ position, ratio, suggested }) {
@@ -950,24 +970,28 @@
   function renderContractCards() {
     const root = $('contractList');
     root.replaceChildren();
-    (D.CONTRACTS || []).forEach(item => {
-      const card = document.createElement('div');
-      card.className = `contract-card ${item.tone || ''}`;
-      card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
-        <h3>${item.title}</h3>
-        <p class="contract-bg">${item.background}</p>
-        <div class="contract-goal"><b>目标</b> ${item.goalText}</div>
-        <div class="contract-meta">${item.limitText}<br>${item.specialText}</div>
-        <button type="button" data-contract="${item.id}">${item.id === 'free' ? '自由交易' : '签下合同'}</button>`;
-      card.querySelector('button').addEventListener('click', () => selectContract(item.id));
-      root.append(card);
-    });
+    const contracts = D.CONTRACTS || [];
+    if (!contracts.length) return;
+    contractIndex = Math.max(0, Math.min(contracts.length - 1, contractIndex));
+    const item = contracts[contractIndex];
+    const card = document.createElement('div');
+    card.className = `contract-card ${item.tone || ''}`;
+    card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
+      <h3>${item.title}</h3>
+      <p class="contract-bg">${item.background}</p>
+      <div class="contract-goal"><b>目标</b> ${item.goalText}</div>
+      <div class="contract-meta">${item.limitText}<br>${item.specialText}</div>
+      <button type="button" data-contract="${item.id}">${item.id === 'free' ? '自由交易' : '签下合同'}</button>`;
+    card.querySelector('button').addEventListener('click', () => selectContract(item.id));
+    root.append(card);
+    if ($('contractProgress')) $('contractProgress').textContent = `${contractIndex + 1} / ${contracts.length}`;
     scheduleTermify();
   }
 
   function openContractPicker() {
     if (E.state.mode !== 'sim' || E.state.contract || E.state.positions.length || E.state.history.length || E.state.runClosed) return;
     if (!$('welcome').classList.contains('hidden') || !$('tutorial').classList.contains('hidden') || modalOpen) return;
+    contractIndex = 0;
     renderContractCards();
     $('contractModal').classList.remove('hidden');
     window.FXAudio?.click();
@@ -1376,6 +1400,11 @@
     };
     $('longBtn').addEventListener('click', () => submitOrder(1));
     $('shortBtn').addEventListener('click', () => submitOrder(-1));
+    $('mobileLongBtn').addEventListener('click', () => submitOrder(1));
+    $('mobileShortBtn').addEventListener('click', () => submitOrder(-1));
+    $('mobilePositionBtn').addEventListener('click', () => {
+      $('positions').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
     $('simMode').addEventListener('click', () => { stopPractice(); E.setMode('sim'); maybeOpenContractPicker(); });
     $('realMode').addEventListener('click', () => { stopPractice(); E.setMode('real'); });
     $('battleMode').addEventListener('click', () => { stopPractice(); E.setMode('battle'); });
@@ -1668,6 +1697,16 @@
     });
 
     $('contractClose').addEventListener('click', () => selectContract('free'));
+    $('contractPrev').addEventListener('click', () => {
+      const total = (D.CONTRACTS || []).length;
+      contractIndex = (contractIndex - 1 + total) % total;
+      renderContractCards();
+    });
+    $('contractNext').addEventListener('click', () => {
+      const total = (D.CONTRACTS || []).length;
+      contractIndex = (contractIndex + 1) % total;
+      renderContractCards();
+    });
     $('contractModal').addEventListener('click', event => {
       if (event.target === $('contractModal')) selectContract('free');
     });

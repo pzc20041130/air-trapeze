@@ -119,10 +119,11 @@
   function maybeContractEvent() {
     if (!isContractActive() || state.runClosed) return null;
     const contract = state.contract;
-    if (!contract || contract.eventPending) return null;
+    if (!contract || contract.eventPending || !contract.eventReady) return null;
     const event = (contract.events || [])[contract.eventIndex];
     if (!event || (contract.trades || 0) < event.at) return null;
     contract.eventPending = true;
+    contract.eventReady = false;
     save();
     ui('showContractEvent', { event, contractTitle: contract.title, eventIndex: contract.eventIndex });
     return event;
@@ -247,6 +248,7 @@
       goalAnnounced: false,
       eventIndex: 0,
       eventPending: false,
+      eventReady: false,
       eventLog: [],
       flags: {}
     };
@@ -284,6 +286,7 @@
       state.contract.startEquity = Number.isFinite(Number(state.contract.startEquity)) ? Number(state.contract.startEquity) : account().equity;
       state.contract.eventIndex = Math.max(0, Math.floor(Number(state.contract.eventIndex) || 0));
       state.contract.eventPending = false;
+      state.contract.eventReady = false;
       state.contract.eventLog = Array.isArray(state.contract.eventLog) ? state.contract.eventLog : [];
       state.contract.flags = state.contract.flags && typeof state.contract.flags === 'object' ? state.contract.flags : {};
     }
@@ -534,7 +537,6 @@
       else if (state.leverage >= 100) narrate('100 倍。安全网？这里没有那种东西。');
       else if (state.leverage >= 50) narrate('这个高度，风有点大。');
     }
-    maybeContractEvent();
     return position;
   }
 
@@ -573,6 +575,10 @@
     else if (pnl > 0) narrate('赚钱了。比亏损更危险的是，你开始觉得自己行了。');
     else narrate('亏损平仓。至少你还有「重新开始」。');
     const bankruptNow = !state.positions.length && state.mode !== 'challenge' && (state.cash < 0 || account().equity <= 0);
+    if (!bankruptNow && isContractActive()) {
+      state.contract.eventReady = true;
+      save();
+    }
     if (bankruptNow) {
       checkBankruptcy();
     } else {
@@ -1751,6 +1757,7 @@
     contractStatus,
     contractBlocked,
     contractNoLoans,
+    maybeContractEvent,
     resolveContractEvent,
     setDifficulty,
     setNickname,

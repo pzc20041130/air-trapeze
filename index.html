@@ -203,6 +203,17 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="narrator" class="narrator" role="status" aria-live="polite"><span>🎙 旁白</span><p id="narratorText"></p></div>
 
+  <div id="mobileTradeBar" class="mobile-trade-bar">
+    <div class="mobile-trade-status">
+      <span>可用余额 <b id="mobileCash">$10,000.00</b></span>
+      <button id="mobilePositionBtn" class="mobile-position-btn" type="button">空仓</button>
+    </div>
+    <div class="mobile-trade-actions">
+      <button id="mobileLongBtn" class="mobile-trade-btn long" type="button">做多</button>
+      <button id="mobileShortBtn" class="mobile-trade-btn short" type="button">做空</button>
+    </div>
+  </div>
+
   <div id="newsFloat" class="news-float" role="status">
     <button id="newsFloatClose" class="nf-close" aria-label="关闭快讯" type="button">×</button>
     <span class="nf-tag" id="nfTag">快讯</span><h4 id="nfTitle"></h4><p id="nfBody"></p><span class="nf-date" id="nfDate"></span>
@@ -393,6 +404,11 @@
       <h2 id="contractTitle">这一局，你打算怎么活？</h2>
       <p class="contract-intro">合同只在模拟模式生效。目标完成后可以收手，也可以继续贪；失败照样进病历。</p>
       <div id="contractList" class="contract-list"></div>
+      <div class="contract-stepper">
+        <button id="contractPrev" class="outline-button" type="button">上一份</button>
+        <span id="contractProgress" class="contract-progress">1 / 4</span>
+        <button id="contractNext" class="outline-button" type="button">下一份</button>
+      </div>
       <p class="contract-note">不想签合同就选自由模式，按现在的规则玩。</p>
     </div>
   </div>
