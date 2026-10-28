@@ -133,6 +133,7 @@
     renderChallenge();
     renderTicker();
     renderActiveEvents();
+    renderMajorAlert();
     syncMobileBar();
     drawChart();
     scheduleTermify();
@@ -501,7 +502,7 @@
     if (key === tickerKey) return;
     tickerKey = key;
     const track = $('tickerTrack');
-    const text = displayItems.map(item => `【${item.tag || '快讯'}】${item.title} · ${item.body}`).join('　　✦　　');
+    const text = displayItems.map(item => `${item.tag ? `【${item.tag}】` : ''}${item.title} · ${item.body}`).join('　　✦　　');
     track.className = 'ticker-track';
     track.replaceChildren();
     [0, 1].forEach(index => {
@@ -528,16 +529,17 @@
     root.classList.remove('hidden');
     root.replaceChildren();
     events.slice(0, 3).forEach(event => {
+      const major = !!(event.rare || event.kind === 'breaking' || event.tone === 'breaking');
       const card = document.createElement('div');
-      card.className = `active-event tone-${event.tone || 'normal'}${event.rare || event.kind === 'breaking' ? ' rare' : ''}`;
+      card.className = `active-event tone-${event.tone || 'normal'}${event.rare ? ' rare' : ''}${major ? ' major' : ''}`;
       const top = document.createElement('div');
       top.className = 'active-event-top';
       const tag = document.createElement('span');
       tag.className = 'active-event-tag';
-      tag.textContent = event.tag || '快讯';
+      tag.textContent = event.tone === 'meme' ? '' : event.tag || '快讯';
       const time = document.createElement('span');
       time.className = 'active-event-time';
-      time.textContent = `${event.rare || event.kind === 'breaking' || event.tone === 'breaking' ? 'BREAKING · ' : ''}剩 ${Math.max(0, event.remaining || 0)} 根`;
+      time.textContent = `${major ? '警报 · ' : ''}剩 ${Math.max(0, event.remaining || 0)} 根 / ${Math.ceil(Math.max(0, event.remaining || 0) * 1.5)} 秒`;
       top.append(tag, time);
       const title = document.createElement('strong');
       title.textContent = event.title || '';
@@ -550,6 +552,21 @@
       if (event.quote) card.append(quote);
       root.append(card);
     });
+  }
+
+  function renderMajorAlert() {
+    const events = E.settings.newsOn ? (E.activeNews || []) : [];
+    const major = events
+      .filter(event => event.rare || event.kind === 'breaking' || event.tone === 'breaking')
+      .sort((a, b) => (a.remaining || 0) - (b.remaining || 0))[0];
+    const alert = $('majorAlert');
+    if (!major) {
+      alert.classList.add('hidden');
+      return;
+    }
+    alert.classList.remove('hidden');
+    $('majorAlertTitle').textContent = major.title || '重大事件';
+    $('majorAlertTime').textContent = `剩余 ${Math.ceil(Math.max(0, major.remaining || 0) * 1.5)} 秒 · 立即判断`;
   }
 
   function renderRangeStats() {
@@ -629,7 +646,7 @@
     const item = newsFloatQueue.shift();
     if (!item) { newsFloatActive = false; return; }
     newsFloatActive = true;
-    $('nfTag').textContent = item.tag || '快讯';
+    $('nfTag').textContent = item.tag || '';
     $('nfTag').className = 'nf-tag' + (item.ach ? ' ach' : '') + (item.rare || item.tone === 'breaking' ? ' rare' : '');
     $('nfTitle').textContent = item.title || '';
     $('nfBody').textContent = `${item.body || ''}${item.quote ? `\n${item.quote}` : ''}`;

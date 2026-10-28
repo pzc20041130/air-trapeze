@@ -898,7 +898,8 @@
       }
     }
     if (!template || (template.id && activeSimNews.some(event => event.id === template.id))) return;
-    const duration = Number(template.duration) || 16 + Math.floor(Math.random() * 12);
+    const major = !!(template.rare || template.kind === 'breaking' || template.tone === 'breaking');
+    const duration = Number(template.duration) || (major ? 9 + Math.floor(Math.random() * 4) : 16 + Math.floor(Math.random() * 12));
     activeSimNews.push({
       ...template,
       id: template.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -910,7 +911,8 @@
     const range = NEWS_FREQ_TICKS[settings.newsFreq] || NEWS_FREQ_TICKS.mid;
     simNewsTicks = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
     pushNews({
-      tag: template.tag, title: template.title, body: template.body,
+      tag: template.tone === 'meme' ? '' : template.tag,
+      title: template.title, body: template.body,
       quote: template.quote || '', tone: template.tone || '', rare: !!template.rare, kind: template.kind || '',
       date: '模拟事件'
     });
@@ -930,7 +932,7 @@
     if (!pick) return;
     simFlavorTicks = 12 + Math.floor(Math.random() * 14);
     pushNews({
-      tag: pick.tag || '整活', title: pick.title, body: pick.body,
+      tag: '', title: pick.title, body: pick.body,
       quote: pick.quote || '', tone: 'flavor', kind: 'flavor', date: '生活'
     });
   }

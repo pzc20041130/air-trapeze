@@ -445,6 +445,8 @@ html[data-theme="night"] .seg-mini button.active { background: var(--surface-hov
 .active-event.tone-meme { background: linear-gradient(160deg, #fffaf0, var(--surface-tint)); }
 .active-event.tone-breaking { border-color: #e4c6a8; }
 .active-event.rare { border-color: #d9a7b0; background: linear-gradient(160deg, #fff5f6, var(--surface-tint)); }
+.active-event.major { border-color: #d97885; background: linear-gradient(160deg, #fff0f2, #fffaf8); box-shadow: 0 0 0 1px rgba(217, 120, 133, 0.16), 0 8px 20px -18px rgba(150, 45, 65, 0.55); }
+.active-event.major .active-event-tag, .active-event.major .active-event-time { color: #a83f50; }
 .active-event.rare .active-event-tag, .active-event.rare .active-event-time { color: var(--short-text); }
 .active-event-quote { display: block; margin-top: 4px; font-style: italic; font-size: 8.5px; line-height: 1.45; color: var(--text-dim); }
 .active-event-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
@@ -647,6 +649,22 @@ html[data-theme="night"] .loan-actions button:hover:not(:disabled) { background:
 .news-float h4 { margin: 6px 0 5px; font-size: 13.5px; color: var(--text-deep); line-height: 1.4; padding-right: 12px; }
 .news-float p { font-size: 11px; line-height: 1.65; color: var(--text-muted); white-space: pre-line; }
 .nf-date { display: block; margin-top: 8px; font-family: var(--font-mono); font-size: 9.5px; color: var(--text-dim); }
+
+.major-alert {
+  position: fixed; top: 78px; right: 24px; z-index: 85; width: min(420px, calc(100vw - 48px));
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+  padding: 10px 13px; border-radius: 11px; border: 1px solid #d97885;
+  background: linear-gradient(135deg, #fff4f2, #ffe6e8); color: #7f2738;
+  box-shadow: 0 14px 30px -18px rgba(150, 45, 65, 0.5);
+  animation: major-alert-pulse 1.4s ease-in-out infinite;
+}
+.major-alert-kicker { font-size: 9px; font-weight: 900; letter-spacing: 0.1em; color: #b13b4e; }
+.major-alert strong { flex: 1 1 100%; font-size: 12px; line-height: 1.45; color: #7f2738; }
+.major-alert-time { font-family: var(--font-mono); font-size: 9px; color: #a83f50; }
+@keyframes major-alert-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 120, 133, 0.12), 0 14px 30px -18px rgba(150, 45, 65, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(217, 120, 133, 0.08), 0 14px 30px -18px rgba(150, 45, 65, 0.5); }
+}
 
 .mobile-trade-bar { display: none; }
 @media (max-width: 720px) {
@@ -947,6 +965,7 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
   .news-float { top: auto; bottom: 88px; left: 12px; right: 12px; width: auto; }
   .toast { bottom: 96px; }
   .narrator { left: 12px; right: 12px; bottom: 96px; width: auto; }
+  .major-alert { top: 70px; left: 12px; right: 12px; width: auto; }
 }
 
 @media (max-width: 390px) {
