@@ -1054,7 +1054,7 @@
     practiceMode = true;
     practicePending = false;
     render();
-    showPracticeHint('第一笔练习：保证金 100，杠杆 10，点「做多 / 买入」。');
+    showPracticeHint('第一笔练习：保证金 100，杠杆 10，点「做多 / 买入」。记住：做多后价格涨才赚。');
     toast('练习不算合同：用 $100 保证金、10 倍杠杆做多，练完再选合同。');
   }
 
@@ -1369,6 +1369,17 @@
     else maybeOpenContractPicker();
   }
 
+  function showProfitGuide() {
+    openModal({
+      icon: '?',
+      title: '怎么赚钱？',
+      message: '做多：价格涨才赚。做空：价格跌才赚。',
+      detail: '做多例子：\n1.1000 买入，涨到 1.1010 平仓 → 赚钱。\n1.1000 买入，跌到 1.0990 平仓 → 亏钱。\n\n做空例子：\n1.1000 卖出，跌到 1.0990 平仓 → 赚钱。\n1.1000 卖出，涨到 1.1010 平仓 → 亏钱。\n\n开仓会先扣一小笔手续费。\n保证金只是被锁住，平仓后会回来。\n杠杆会同时放大赚和亏。',
+      preline: true,
+      confirm: '知道了'
+    });
+  }
+
   function openHelp() {
     $('helpModal').classList.remove('hidden');
     window.FXAudio?.click();
@@ -1553,6 +1564,7 @@
     $('tutorialBtn').addEventListener('click', () => { tutorialPractice = false; openTutorial(); });
     $('helpBtn').addEventListener('click', openHelp);
     $('welcomeHelpBtn').addEventListener('click', openHelp);
+    $('profitGuideBtn').addEventListener('click', showProfitGuide);
     $('helpClose').addEventListener('click', closeHelp);
     $('helpOk').addEventListener('click', closeHelp);
     $('helpModal').addEventListener('click', event => { if (event.target === $('helpModal')) closeHelp(); });
