@@ -344,6 +344,7 @@
       background: '房东在群里发了第三次「在吗」。\n工资还有 9 天到账，房租还差 $800。\n这时你看到一条广告：\n「在家做外汇，一天赚回房租。」',
       goalText: '净赚 $800 后收手。', limitText: '最多 5 笔交易',
       specialText: '本合同不开放借款。', goalType: 'profit', targetProfit: 800, maxTrades: 5, noLoans: true,
+      coachTargetProfit: 100, coachGoalText: '净赚 $100 后收手。',
       events: [
         {
           id: 'rent-1', at: 1, title: '房东第三次「在吗」',
@@ -376,6 +377,7 @@
       background: '你已经在肥鱼信贷借了 $3,000。\n今天不还，明天利息翻倍。\n你看了看账户里最后 $10,000，\n决定「翻本就走」。',
       goalText: '还清 $3,000 贷款，并让权益达到 $8,000。', limitText: '最多 10 笔交易',
       specialText: '初始负债 $3,000；不开放新增借款。', goalType: 'debt', startDebt: 3000, targetEquity: 8000, maxTrades: 10, noLoans: true,
+      coachTargetEquity: 7200, coachGoalText: '还清 $3,000 贷款，并让权益达到 $7,200。',
       events: [
         {
           id: 'debt-1', at: 2, title: '最后提醒',
@@ -408,6 +410,7 @@
       background: 'HR 说「公司感谢你的贡献」。\n你算了算，赔偿金只够交两个月房租。\n招聘软件上全是已读不回。\n你决定先赚 $3,000 过渡费。\n你告诉自己：找到工作就收手。',
       goalText: '净赚 $3,000 后收手。', limitText: '最多 8 笔交易',
       specialText: '初始现金 $6,000；不开放借款。', goalType: 'profit', startCash: 6000, targetProfit: 3000, maxTrades: 8, noLoans: true,
+      coachTargetProfit: 500, coachGoalText: '净赚 $500 后收手。',
       events: [
         {
           id: 'layoff-1', at: 1, title: 'HR 约谈',

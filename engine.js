@@ -12,7 +12,7 @@
   const BOARD_KEY = 'af-board-v1';
   const CASES_KEY = 'af-cases-v1';
   const ENDINGS_KEY = 'af-endings-v1';
-  const DEFAULT_SETTINGS = { nickname: '大肥鱼', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard' };
+  const DEFAULT_SETTINGS = { nickname: '大肥鱼', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard', coachMode: true };
   const NEWS_FREQ_TICKS = { low: [40, 70], mid: [12, 22], high: [5, 10] };
   const REAL_MAX_SPAN = 600;
   const todayKey = () => new Date().toLocaleDateString('en-CA');
@@ -222,8 +222,14 @@
   function startContract(id) {
     if (state.mode !== 'sim') return false;
     if (state.positions.length || state.history.length || state.runClosed) return false;
-    const config = (D.CONTRACTS || []).find(item => item.id === id);
-    if (!config) return false;
+    const baseConfig = (D.CONTRACTS || []).find(item => item.id === id);
+    if (!baseConfig) return false;
+    const config = { ...baseConfig };
+    if (settings.coachMode) {
+      if (baseConfig.coachTargetProfit != null) config.targetProfit = baseConfig.coachTargetProfit;
+      if (baseConfig.coachTargetEquity != null) config.targetEquity = baseConfig.coachTargetEquity;
+      if (baseConfig.coachGoalText) config.goalText = baseConfig.coachGoalText;
+    }
     state.cash = Number(config.startCash) || 10000;
     state.debt = 0;
     state.loanPrincipal = 0;
@@ -253,6 +259,10 @@
       flags: {}
     };
     state.leverage = Math.min(state.leverage, maxLeverage());
+    if (settings.coachMode) {
+      state.margin = 100;
+      state.leverage = Math.min(5, maxLeverage());
+    }
     save();
     emit();
     return true;

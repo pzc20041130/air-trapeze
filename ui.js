@@ -135,6 +135,7 @@
     renderActiveEvents();
     renderMajorAlert();
     syncMobileBar();
+    renderCoachPanel();
     drawChart();
     scheduleTermify();
   }
@@ -239,6 +240,54 @@
     }
     $('mobileLongBtn').disabled = $('longBtn').disabled;
     $('mobileShortBtn').disabled = $('shortBtn').disabled;
+  }
+
+  function coachActive() {
+    return !!(E.settings.coachMode && E.state.mode === 'sim');
+  }
+
+  function submitCoachOrder(side) {
+    if (!coachActive() || E.state.runClosed || E.state.positions.length || E.contractBlocked()) return;
+    E.setMargin(100);
+    E.setLeverage(5);
+    const entry = E.price(E.state.pair);
+    if (!Number.isFinite(entry)) return;
+    const stopPrice = side === 1 ? entry * 0.96 : entry * 1.04;
+    const takePrice = side === 1 ? entry * 1.08 : entry * 0.92;
+    const opened = E.openPosition(side, false, { stopPrice, takePrice });
+    if (opened) toast(side === 1 ? '教练单：会涨。最多亏约 $20。' : '教练单：会跌。最多亏约 $20。');
+  }
+
+  function renderCoachPanel() {
+    const active = coachActive();
+    document.body.classList.toggle('coach-mode', active);
+    $('coachOrder').classList.toggle('hidden', !active);
+    if (!active) return;
+    const s = E.state;
+    $('coachPair').textContent = s.pair;
+    $('coachPrice').textContent = D.priceText(s.pair, E.price(s.pair));
+    const pos = s.positions.find(item => item.pair === s.pair);
+    $('coachPosition').classList.toggle('hidden', !pos);
+    $('coachLong').parentElement.classList.toggle('hidden', !!pos);
+    $('coachQuestion')?.classList.toggle('hidden', !!pos);
+    if (pos) {
+      $('coachPosTitle').textContent = pos.side === 1 ? '你做多了' : '你做空了';
+      const pnl = E.positionPnl(pos);
+      $('coachPosPnl').textContent = D.signedMoney(pnl);
+      $('coachPosPnl').className = pnl >= 0 ? '' : 'negative';
+    }
+    const status = E.contractStatus();
+    if (status) {
+      $('coachGoal').textContent = status.complete
+        ? '目标：已达成，可以收手'
+        : `目标：还差 ${D.money(status.remaining)}`;
+    } else {
+      $('coachGoal').textContent = '目标：没有合同，想走就走';
+    }
+    const blocked = s.runClosed || E.contractBlocked();
+    $('coachLong').disabled = blocked;
+    $('coachShort').disabled = blocked;
+    $('coachClose').disabled = !!s.runClosed;
   }
 
   function renderOrder() {    const s = E.state;
@@ -771,6 +820,19 @@
   }
 
   function showCloseModal({ liquidated, pnl, pair, side, cash, margin, leverage, trigger, triggerPrice, stopPrice, takePrice }) {
+    if (E.settings.coachMode && E.state.mode === 'sim') {
+      const won = pnl >= 0;
+      openModal({
+        icon: won ? '✦' : '♡',
+        loss: !won,
+        title: won ? `赚了 ${D.money(pnl)}` : `亏了 ${D.money(Math.abs(pnl))}`,
+        message: `${pair} ${side === 1 ? '做多' : '做空'}已平仓。${trigger === 'stop' ? '自动止损先替你平了。' : trigger === 'take' ? '自动止盈帮你落袋。' : '你手动平仓了。'}`,
+        detail: `这一单的押金 ${D.money(margin)} 已退回。\n${won ? '价格往你判断的方向走了。' : '价格往反方向走了，自动止损替你收住了。'}`,
+        preline: true,
+        confirm: '继续'
+      });
+      return;
+    }
     const automated = trigger === 'stop' || trigger === 'take';
     const canRevenge = !automated && !liquidated && pnl < 0 && !E.isSafe();
     const level = trigger === 'stop' ? stopPrice : takePrice;
@@ -991,12 +1053,13 @@
     if (!contracts.length) return;
     contractIndex = Math.max(0, Math.min(contracts.length - 1, contractIndex));
     const item = contracts[contractIndex];
+    const goalText = E.settings.coachMode && item.coachGoalText ? item.coachGoalText : item.goalText;
     const card = document.createElement('div');
     card.className = `contract-card ${item.tone || ''}`;
     card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
       <h3>${item.title}</h3>
       <p class="contract-bg">${item.background}</p>
-      <div class="contract-goal"><b>目标</b> ${item.goalText}</div>
+      <div class="contract-goal"><b>目标</b> ${goalText}</div>
       <div class="contract-meta">${item.limitText}<br>${item.specialText}</div>
       <button type="button" data-contract="${item.id}">${item.id === 'free' ? '自由交易' : '签下合同'}</button>`;
     card.querySelector('button').addEventListener('click', () => selectContract(item.id));
@@ -1291,6 +1354,7 @@
     const s = E.settings;
     $('nicknameInput').value = s.nickname || '大肥鱼';
     $('advancedToggle').checked = !!s.advancedTrading;
+    $('coachToggle').checked = !!s.coachMode;
     $('sfxToggle').checked = s.sfxOn;
     $('sfxVolume').value = s.sfxVol;
     $('musicToggle').checked = s.musicOn;
@@ -1428,6 +1492,18 @@
     };
     $('longBtn').addEventListener('click', () => submitOrder(1));
     $('shortBtn').addEventListener('click', () => submitOrder(-1));
+    $('coachLong').addEventListener('click', () => submitCoachOrder(1));
+    $('coachShort').addEventListener('click', () => submitCoachOrder(-1));
+    $('coachClose').addEventListener('click', () => {
+      const pos = E.state.positions.find(item => item.pair === E.state.pair);
+      if (pos) E.closePosition(pos.id, false);
+    });
+    $('coachExit').addEventListener('click', () => {
+      E.saveSettings({ coachMode: false });
+      render();
+      toast('已切回完整界面。设置里可以重新打开教练模式。');
+    });
+    $('coachGuide').addEventListener('click', showProfitGuide);
     $('mobileLongBtn').addEventListener('click', () => submitOrder(1));
     $('mobileShortBtn').addEventListener('click', () => submitOrder(-1));
     $('mobilePositionBtn').addEventListener('click', () => {
@@ -1631,6 +1707,11 @@
       E.saveSettings({ advancedTrading: event.target.checked });
       renderOrder();
       toast(event.target.checked ? '进阶交易已开启：下单时可以填止损/止盈。' : '进阶交易已关闭。');
+    });
+    $('coachToggle').addEventListener('change', event => {
+      E.saveSettings({ coachMode: event.target.checked });
+      render();
+      toast(event.target.checked ? '教练模式已开启：只保留涨/跌。' : '已切回完整界面。');
     });
     $('sfxToggle').addEventListener('change', event => {
       E.saveSettings({ sfxOn: event.target.checked });
