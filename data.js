@@ -539,8 +539,23 @@
     }
   ];
 
+  const SHOP_ITEMS = [
+    {
+      id: 'intel', title: '一条情报', price: 100, kicker: 'INTEL',
+      desc: '提前知道下一条重大事件的标题。\n只告诉你可能发生什么，不告诉你涨还是跌。'
+    },
+    {
+      id: 'insurance', title: '止损保险', price: 200, kicker: 'INSURANCE',
+      desc: '下一次止损返还一半亏损，最多 $20。\n用一次就没了。'
+    },
+    {
+      id: 'extension', title: '延期一次', price: 300, kicker: 'EXTENSION',
+      desc: '这份合同的交易次数 +1。\n多给自己一根救命稻草。'
+    }
+  ];
+
   window.FXData = {
-    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENVIRONMENTS, ENDINGS,
+    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENVIRONMENTS, SHOP_ITEMS, ENDINGS,
     LOAN_MAX, loanDailyRate, tradeFee,
     money, signedMoney, pct, priceText, rateText,
     CHALLENGE_BOARD_SIZE: 3,

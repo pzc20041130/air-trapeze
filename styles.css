@@ -1087,6 +1087,17 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 .environment-card small { font-size: 9px; line-height: 1.5; color: var(--accent-deep); }
 .environment-card button { border: 0; border-radius: 8px; padding: 9px; background: var(--surface); color: var(--text-deep); font-size: 10.5px; font-weight: 800; }
 .environment-card button:hover { background: var(--tint-green); }
+.shop-modal { width: min(760px, 94vw); }
+.shop-cash { margin-top: 13px; font-family: var(--font-mono); font-size: 11px; color: var(--accent-deep); }
+.shop-list { margin-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.shop-card { display: flex; flex-direction: column; gap: 7px; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-tint); }
+.shop-card h3 { font-size: 14px; color: var(--text-deep); }
+.shop-card p { flex: 1; font-size: 10.5px; line-height: 1.65; color: var(--text-muted); white-space: pre-line; }
+.shop-card .shop-price { font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep); font-weight: 800; }
+.shop-card button { border: 0; border-radius: 8px; padding: 9px; background: var(--surface); color: var(--text-deep); font-size: 10.5px; font-weight: 800; }
+.shop-card button:hover { background: var(--tint-green); }
+.shop-card button:disabled { opacity: 0.4; }
+.shop-skip { display: block; margin: 14px auto 0; font-size: 9.5px; color: var(--text-dim); }
 .contract-card {
   border: 1px solid var(--border); border-radius: 14px; background: var(--surface-tint);
   padding: 14px 15px; display: flex; flex-direction: column; gap: 7px;
@@ -1118,6 +1129,7 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
   .endings-list { grid-template-columns: 1fr; max-height: 48vh; }
   .active-events { grid-template-columns: 1fr; }
   .environment-list { grid-template-columns: 1fr; }
+  .shop-list { grid-template-columns: 1fr; }
   .contract-list { grid-template-columns: 1fr; }
   .contract-bg { min-height: 0; }
 }

@@ -169,7 +169,9 @@
       contract.eventReady = true;
     } else {
       contract.eventReady = false;
-      contract.act = Math.min(3, act + 1);
+      const nextAct = Math.min(3, act + 1);
+      if (nextAct > act && act < 3 && !settings.coachMode) contract.pendingShop = true;
+      contract.act = nextAct;
     }
     contract.eventLog = contract.eventLog || [];
     contract.eventLog.push({
@@ -182,6 +184,47 @@
     maybeContractGoal();
     if (choice.note) narrate(choice.note);
     return choice;
+  }
+
+  function buyShopItem(itemId) {
+    const contract = state.contract;
+    if (!contract || !contract.pendingShop) return { ok: false, message: '现在不是幕间休息。' };
+    const item = (D.SHOP_ITEMS || []).find(entry => entry.id === itemId);
+    if (!item) return { ok: false, message: '没有这个商品。' };
+    if (state.cash < item.price) return { ok: false, message: '现金不够。' };
+    if (item.id === 'intel') {
+      const breaking = SIM_NEWS.filter(entry => entry.kind === 'breaking' && entry.bias?.[state.pair]
+        && !activeSimNews.some(event => event.id === entry.id));
+      const pool = breaking.length ? breaking : SIM_NEWS.filter(entry => entry.kind === 'breaking'
+        && !activeSimNews.some(event => event.id === entry.id));
+      if (!pool.length) return { ok: false, message: '今天没什么情报。' };
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      contract.intelTemplateId = pick.id;
+      contract.intelTitle = pick.title;
+      contract.intelUsed = false;
+    } else if (item.id === 'insurance') {
+      contract.insurance = true;
+    } else if (item.id === 'extension') {
+      contract.maxTrades = (Number(contract.maxTrades) || 5) + 1;
+      if (Array.isArray(contract.actEnds) && contract.actEnds.length === 3) {
+        contract.actEnds[2] = Number(contract.actEnds[2]) + 1;
+      }
+    }
+    state.cash -= item.price;
+    contract.pendingShop = false;
+    contract.shopPurchased = item.id;
+    save();
+    emit();
+    return { ok: true, item };
+  }
+
+  function skipShop() {
+    const contract = state.contract;
+    if (!contract || !contract.pendingShop) return false;
+    contract.pendingShop = false;
+    save();
+    emit();
+    return true;
   }
 
   function contractGrade() {
@@ -287,6 +330,8 @@
       trades: 0,
       act: 1,
       actEnds,
+      pendingShop: false,
+      shopPurchased: null,
       startEquity: account().equity,
       goalAnnounced: false,
       eventIndex: 0,
@@ -337,6 +382,8 @@
         state.contract.actEnds = [Math.ceil(maxTrades / 3), Math.ceil(maxTrades * 2 / 3), maxTrades];
       }
       state.contract.act = Math.max(1, Math.min(3, Number(state.contract.act) || 1));
+      state.contract.pendingShop = !!state.contract.pendingShop;
+      state.contract.shopPurchased = state.contract.shopPurchased || null;
       state.contract.eventPending = false;
       state.contract.eventReady = false;
       state.contract.eventLog = Array.isArray(state.contract.eventLog) ? state.contract.eventLog : [];
@@ -598,6 +645,14 @@
     const pos = state.positions[index];
     const pnl = positionPnl(pos);
     state.cash += pos.margin + pnl;
+    let insuranceRelief = 0;
+    if (isContractActive() && state.contract.insurance && pnl < 0 && (meta.trigger === 'stop' || liquidated)) {
+      insuranceRelief = Math.min(20, Math.abs(pnl) * 0.5);
+      state.cash += insuranceRelief;
+      state.contract.insurance = false;
+      state.contract.insuranceUsed = true;
+      state.contract.insuranceRelief = insuranceRelief;
+    }
     state.positions.splice(index, 1);
     state.history.unshift({
       pair: pos.pair, side: pos.side, pnl, liquidated: !!liquidated,
@@ -645,7 +700,8 @@
         trigger: meta.trigger || null,
         triggerPrice: meta.triggerPrice ?? null,
         stopPrice: pos.stopPrice,
-        takePrice: pos.takePrice
+        takePrice: pos.takePrice,
+        insuranceRelief
       });
     }
   }
@@ -938,6 +994,11 @@
   /* ---------- 模拟行情 ---------- */
   function triggerSimNews(preferredId = null) {
     let template = preferredId ? SIM_NEWS.find(item => item.id === preferredId) : null;
+    if (!template && state.contract?.intelTemplateId) {
+      template = SIM_NEWS.find(item => item.id === state.contract.intelTemplateId) || null;
+      state.contract.intelTemplateId = null;
+      state.contract.intelUsed = true;
+    }
     if (!template) {
       const environment = state.contract?.environment;
       const breaking = SIM_NEWS.filter(item => item.kind === 'breaking' && item.bias?.[state.pair] && !activeSimNews.some(event => event.id === item.id));
@@ -1824,6 +1885,8 @@
     contractBlocked,
     contractNoLoans,
     maybeContractEvent,
+    buyShopItem,
+    skipShop,
     resolveContractEvent,
     setDifficulty,
     setNickname,

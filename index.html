@@ -452,6 +452,19 @@
     </div>
   </div>
 
+  <div id="shopModal" class="modal-backdrop hidden" role="presentation">
+    <div class="modal shop-modal" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+      <button id="shopClose" class="modal-x" aria-label="跳过幕间商店" type="button">×</button>
+      <div class="modal-icon">◈</div>
+      <span class="contract-kicker">INTERMISSION</span>
+      <h2 id="shopTitle">幕间 · 情报商店</h2>
+      <p class="contract-intro">下一幕开始前，可以把现金换成情报、保险或一次延期。买了会少一点本金，自己权衡。</p>
+      <div id="shopCash" class="shop-cash"></div>
+      <div id="shopList" class="shop-list"></div>
+      <button id="shopSkip" class="text-button shop-skip" type="button">什么都不买，进入下一幕</button>
+    </div>
+  </div>
+
   <div id="eventModal" class="modal-backdrop hidden" role="presentation">
     <div class="modal event-modal" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
       <span id="eventKicker" class="contract-kicker">CONTRACT EVENT</span>

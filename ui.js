@@ -822,7 +822,7 @@
     });
   }
 
-  function showCloseModal({ liquidated, pnl, pair, side, cash, margin, leverage, trigger, triggerPrice, stopPrice, takePrice }) {
+  function showCloseModal({ liquidated, pnl, pair, side, cash, margin, leverage, trigger, triggerPrice, stopPrice, takePrice, insuranceRelief = 0 }) {
     if (E.settings.coachMode && E.state.mode === 'sim') {
       const won = pnl >= 0;
       openModal({
@@ -830,7 +830,7 @@
         loss: !won,
         title: won ? `赚了 ${D.money(pnl)}` : `亏了 ${D.money(Math.abs(pnl))}`,
         message: `${pair} ${side === 1 ? '做多' : '做空'}已平仓。${trigger === 'stop' ? '自动止损先替你平了。' : trigger === 'take' ? '自动止盈帮你落袋。' : '你手动平仓了。'}`,
-        detail: `这一单的押金 ${D.money(margin)} 已退回。\n${won ? '价格往你判断的方向走了。' : '价格往反方向走了，自动止损替你收住了。'}`,
+        detail: `这一单的押金 ${D.money(margin)} 已退回。\n${won ? '价格往你判断的方向走了。' : '价格往反方向走了，自动止损替你收住了。'}${insuranceRelief > 0 ? `\n保险补回 ${D.money(insuranceRelief)}。` : ''}`,
         preline: true,
         confirm: '继续'
       });
@@ -852,7 +852,7 @@
         : liquidated
           ? `${pair} 的亏损穿过保证金 80% 爆仓线，已按当前可得价格结算。跳空时亏损可能超过保证金。`
           : `${pair} ${side === 1 ? '做多' : '做空'}仓位已结算，盈亏计入可用余额。`,
-      detail: `${automated ? (trigger === 'stop' ? '止损触发盈亏' : '止盈触发盈亏') : liquidated ? '本次爆仓盈亏' : '本次交易盈亏'}  ${D.signedMoney(pnl)}${cash < 0 ? ` · 账户已穿仓 ${D.money(cash)}` : ''}\n诊断：${E.diagnosis()}`,
+      detail: `${automated ? (trigger === 'stop' ? '止损触发盈亏' : '止盈触发盈亏') : liquidated ? '本次爆仓盈亏' : '本次交易盈亏'}  ${D.signedMoney(pnl)}${cash < 0 ? ` · 账户已穿仓 ${D.money(cash)}` : ''}${insuranceRelief > 0 ? ` · 保险补回 ${D.money(insuranceRelief)}` : ''}\n诊断：${E.diagnosis()}`,
       preline: true,
       confirm: canRevenge ? '最后一把，回本就走' : '知道了',
       cancelText: canRevenge ? '算了，收手' : '知道了',
@@ -1087,6 +1087,49 @@
     contractPromptTimer = setTimeout(openContractPicker, 220);
   }
 
+  function openShop() {
+    const contract = E.state.contract;
+    if (!contract || !contract.pendingShop) return;
+    $('eventModal').classList.add('hidden');
+    $('shopModal').classList.remove('hidden');
+    renderShop();
+  }
+
+  function skipShop() {
+    E.skipShop();
+    $('shopModal').classList.add('hidden');
+    render();
+  }
+
+  function renderShop() {
+    const contract = E.state.contract;
+    const cash = E.state.cash;
+    $('shopCash').textContent = `可用现金 ${D.money(cash)}`;
+    const root = $('shopList');
+    root.replaceChildren();
+    (D.SHOP_ITEMS || []).forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
+        <h3>${item.title}</h3>
+        <p>${item.desc}</p>
+        <span class="shop-price">${D.money(item.price)}</span>
+        <button type="button"${cash < item.price ? ' disabled' : ''}>${cash < item.price ? '现金不够' : '买下'}</button>`;
+      card.querySelector('button').addEventListener('click', () => {
+        const result = E.buyShopItem(item.id);
+        if (!result.ok) {
+          toast(result.message || '买不了。');
+          return;
+        }
+        $('shopModal').classList.add('hidden');
+        render();
+        if (item.id === 'intel' && contract.intelTitle) toast(`情报：下一条重大事件可能是「${contract.intelTitle}」。`);
+        else toast(`买下「${item.title}」。`);
+      });
+      root.append(card);
+    });
+  }
+
   function startSelectedContract(id, environmentId = null) {
     if (!E.startContract(id, environmentId)) {
       toast('现在不能签合同：请先结束当前这一局。');
@@ -1204,6 +1247,7 @@
         $('eventModal').classList.add('hidden');
         render();
         if (E.state.contract?.eventReady) setTimeout(() => E.maybeContractEvent(), 180);
+        else if (E.state.contract?.pendingShop) setTimeout(openShop, 220);
       });
       root.append(button);
     });
@@ -1872,6 +1916,11 @@
         renderContractCards();
       }
     });
+    $('shopClose').addEventListener('click', skipShop);
+    $('shopSkip').addEventListener('click', skipShop);
+    $('shopModal').addEventListener('click', event => {
+      if (event.target === $('shopModal')) skipShop();
+    });
     $('contractPrev').addEventListener('click', () => {
       const total = (D.CONTRACTS || []).length;
       contractIndex = (contractIndex - 1 + total) % total;
@@ -1966,10 +2015,11 @@
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
         if (modalOpen) { closeModal(); return; }
-        const layers = ['endingsModal', 'environmentModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
+        const layers = ['endingsModal', 'shopModal', 'environmentModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
         const open = layers.find(id => !$(id).classList.contains('hidden'));
         if (open === 'tutorial') closeTutorial();
         else if (open === 'endingsModal') closeEndings();
+        else if (open === 'shopModal') skipShop();
         else if (open === 'environmentModal') {
           $('environmentModal').classList.add('hidden');
           pendingContractId = null;
