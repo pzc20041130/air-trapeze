@@ -347,7 +347,7 @@
       coachTargetProfit: 100, coachGoalText: '净赚 $100 后收手。',
       events: [
         {
-          id: 'rent-1', at: 1, title: '房东第三次「在吗」',
+          id: 'rent-1', at: 1, act: 1, title: '房东第三次「在吗」',
           text: '房东在群里 @ 了你。\n「小伙子，这个月什么时候方便？」',
           choices: [
             { label: '先转 $200', cash: -200, flag: 'paidLandlord', note: '房东收下 $200，说剩下的月底前。' },
@@ -355,7 +355,7 @@
           ]
         },
         {
-          id: 'rent-2', at: 3, title: '朋友结婚，随礼 $500',
+          id: 'rent-2', at: 3, act: 2, title: '朋友结婚，随礼 $500',
           text: '大学室友发来请柬。\n你去，这个月更紧；不去，朋友可能觉得你变了。',
           choices: [
             { label: '去，随 $500', cash: -500, flag: 'wentWedding', note: '你去了，笑得很体面。' },
@@ -363,7 +363,7 @@
           ]
         },
         {
-          id: 'rent-3', at: 5, title: '工资还没到账',
+          id: 'rent-3', at: 5, act: 3, title: '工资还没到账',
           text: '财务说流程卡住了。\n房东的消息又亮了一次。',
           choices: [
             { label: '刷信用卡', cash: 300, debt: 300, rate: 0.0001, flag: 'cardDebt', note: '你刷了 $300，账单下个月见。' },
@@ -380,7 +380,7 @@
       coachTargetEquity: 7200, coachGoalText: '还清 $3,000 贷款，并让权益达到 $7,200。',
       events: [
         {
-          id: 'debt-1', at: 2, title: '最后提醒',
+          id: 'debt-1', at: 2, act: 1, title: '最后提醒',
           text: '肥鱼信贷发来一条消息：\n「今天不还，明天利率上浮。」',
           choices: [
             { label: '先还 $300', cash: -300, debt: -300, flag: 'paidEarly', note: '你还了 $300，催收安静了一会儿。' },
@@ -388,7 +388,7 @@
           ]
         },
         {
-          id: 'debt-2', at: 4, title: '家人来电',
+          id: 'debt-2', at: 4, act: 2, title: '家人来电',
           text: '妈妈问你最近是不是缺钱。\n她说：「别硬撑。」',
           choices: [
             { label: '说实话', cash: 500, flag: 'toldFamily', note: '妈妈转来 $500，说别饿着。' },
@@ -396,7 +396,7 @@
           ]
         },
         {
-          id: 'debt-3', at: 6, title: '卖点东西',
+          id: 'debt-3', at: 6, act: 3, title: '卖点东西',
           text: '二手平台有人问你那台游戏机。\n「还在吗？」',
           choices: [
             { label: '卖掉游戏机', cash: 300, flag: 'soldConsole', note: '你卖了游戏机，房间空了一块。' },
@@ -413,7 +413,7 @@
       coachTargetProfit: 500, coachGoalText: '净赚 $500 后收手。',
       events: [
         {
-          id: 'layoff-1', at: 1, title: 'HR 约谈',
+          id: 'layoff-1', at: 1, act: 1, title: 'HR 约谈',
           text: 'HR 把一份协议推过来。\n「签了，今天就能走。」',
           choices: [
             { label: '签协商离职', cash: 1500, flag: 'signedSeverance', note: '赔偿金到账，你签得很快。' },
@@ -421,7 +421,7 @@
           ]
         },
         {
-          id: 'layoff-2', at: 3, title: '三天后有个面试',
+          id: 'layoff-2', at: 3, act: 2, title: '三天后有个面试',
           text: '面试在三天后。\n这三天，你是停手准备，还是再赚一笔？',
           choices: [
             { label: '停手准备', cash: -100, flag: 'preparedInterview', note: '你买了件像样的衬衫，把软件全关了。' },
@@ -429,7 +429,7 @@
           ]
         },
         {
-          id: 'layoff-3', at: 5, title: '前同事拉你进群',
+          id: 'layoff-3', at: 5, act: 3, title: '前同事拉你进群',
           text: '前同事说群里有「内部消息」。\n截图很模糊，语气很确定。',
           choices: [
             { label: '听消息', cash: 500, flag: 'listenedRumor', note: '消息费 $500，群里的截图还是很模糊。' },
@@ -437,7 +437,7 @@
           ]
         },
         {
-          id: 'layoff-4', at: 7, title: '父母来电',
+          id: 'layoff-4', at: 7, act: 3, title: '父母来电',
           text: '电话接通后，他们先问：「吃饭了吗？」',
           choices: [
             { label: '说实话', cash: 1000, flag: 'toldParents', note: '他们没骂你，只转来 $1,000。' },

@@ -120,8 +120,16 @@
     if (!isContractActive() || state.runClosed) return null;
     const contract = state.contract;
     if (!contract || contract.eventPending || !contract.eventReady) return null;
-    const event = (contract.events || [])[contract.eventIndex];
-    if (!event || (contract.trades || 0) < event.at) return null;
+    const act = Math.max(1, Math.min(3, Number(contract.act) || 1));
+    const ends = Array.isArray(contract.actEnds) ? contract.actEnds : [];
+    const end = Number(ends[act - 1]) || 0;
+    if ((contract.trades || 0) < end) return null;
+    let event = (contract.events || [])[contract.eventIndex];
+    while (event && (Number(event.act) || act) < act) {
+      contract.eventIndex += 1;
+      event = (contract.events || [])[contract.eventIndex];
+    }
+    if (!event || (event.act && Number(event.act) !== act)) return null;
     contract.eventPending = true;
     contract.eventReady = false;
     save();
@@ -154,6 +162,15 @@
     if (choice.flag) contract.flags[choice.flag] = true;
     contract.eventIndex += 1;
     contract.eventPending = false;
+    const act = Math.max(1, Math.min(3, Number(contract.act) || 1));
+    const remainingInAct = (contract.events || []).slice(contract.eventIndex)
+      .some(item => (Number(item.act) || act) === act);
+    if (remainingInAct) {
+      contract.eventReady = true;
+    } else {
+      contract.eventReady = false;
+      contract.act = Math.min(3, act + 1);
+    }
     contract.eventLog = contract.eventLog || [];
     contract.eventLog.push({
       id: event.id, title: event.title, choice: choice.label,
@@ -262,10 +279,14 @@
       config.environment = environment;
       config.environmentTitle = environment.title;
     }
+    const maxTrades = Number(config.maxTrades) || 5;
+    const actEnds = [Math.ceil(maxTrades / 3), Math.ceil(maxTrades * 2 / 3), maxTrades];
     state.peakEquity = account().equity;
     state.contract = {
       ...config,
       trades: 0,
+      act: 1,
+      actEnds,
       startEquity: account().equity,
       goalAnnounced: false,
       eventIndex: 0,
@@ -311,6 +332,11 @@
       state.contract.trades = Math.max(0, Math.floor(Number(state.contract.trades) || 0));
       state.contract.startEquity = Number.isFinite(Number(state.contract.startEquity)) ? Number(state.contract.startEquity) : account().equity;
       state.contract.eventIndex = Math.max(0, Math.floor(Number(state.contract.eventIndex) || 0));
+      const maxTrades = Math.max(1, Number(state.contract.maxTrades) || 5);
+      if (!Array.isArray(state.contract.actEnds) || state.contract.actEnds.length !== 3) {
+        state.contract.actEnds = [Math.ceil(maxTrades / 3), Math.ceil(maxTrades * 2 / 3), maxTrades];
+      }
+      state.contract.act = Math.max(1, Math.min(3, Number(state.contract.act) || 1));
       state.contract.eventPending = false;
       state.contract.eventReady = false;
       state.contract.eventLog = Array.isArray(state.contract.eventLog) ? state.contract.eventLog : [];

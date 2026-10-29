@@ -192,15 +192,16 @@
     contractLine.classList.toggle('hidden', !hasContract);
     if (hasContract) {
       const done = !!contract.complete;
-      contractChip.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}${done ? ' · 达成' : ''}`;
+      const actLabel = ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
+      contractChip.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}${done ? ' · 达成' : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
       contractLine.className = 'contract-line' + (done ? ' done' : '');
       if (done) {
-        contractLine.textContent = '目标达成。现在收手，还是再贪一点？';
+        contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       } else {
-        contractLine.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       }
     }
     const closed = !!s.runClosed;
@@ -278,10 +279,11 @@
       $('coachPosPnl').className = pnl >= 0 ? '' : 'negative';
     }
     const status = E.contractStatus();
+    const actLabel = status ? ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(status.act) || 1) - 1))] : '';
     if (status) {
       $('coachGoal').textContent = status.complete
-        ? '目标：已达成，可以收手'
-        : `目标：还差 ${D.money(status.remaining)}`;
+        ? `${actLabel} · 目标已达成，可以收手`
+        : `${actLabel} · 目标：还差 ${D.money(status.remaining)}`;
     } else {
       $('coachGoal').textContent = '目标：没有合同，想走就走';
     }
@@ -1185,7 +1187,9 @@
   }
 
   function showContractEvent({ event, contractTitle }) {
-    $('eventKicker').textContent = `${contractTitle} · CONTRACT EVENT`;
+    const act = Math.max(1, Math.min(3, Number(E.state.contract?.act) || 1));
+    const actLabel = ['第一幕', '第二幕', '第三幕'][act - 1];
+    $('eventKicker').textContent = `${actLabel} · ${contractTitle} · CONTRACT EVENT`;
     $('eventTitle').textContent = event.title;
     $('eventText').textContent = event.text;
     const root = $('eventChoices');
@@ -1199,6 +1203,7 @@
         E.resolveContractEvent(event.id, index);
         $('eventModal').classList.add('hidden');
         render();
+        if (E.state.contract?.eventReady) setTimeout(() => E.maybeContractEvent(), 180);
       });
       root.append(button);
     });
