@@ -219,12 +219,15 @@
     return null;
   }
 
-  function startContract(id) {
+  function startContract(id, environmentId = null) {
     if (state.mode !== 'sim') return false;
     if (state.positions.length || state.history.length || state.runClosed) return false;
     const baseConfig = (D.CONTRACTS || []).find(item => item.id === id);
     if (!baseConfig) return false;
     const config = { ...baseConfig };
+    const environment = !settings.coachMode && environmentId
+      ? (D.ENVIRONMENTS || []).find(item => item.id === environmentId)
+      : null;
     if (settings.coachMode) {
       if (baseConfig.coachTargetProfit != null) config.targetProfit = baseConfig.coachTargetProfit;
       if (baseConfig.coachTargetEquity != null) config.targetEquity = baseConfig.coachTargetEquity;
@@ -245,6 +248,19 @@
       state.debt = config.startDebt;
       state.loanPrincipal = config.startDebt;
       state.loanRate = 0.0002;
+    }
+    if (environment) {
+      const startEquity = account().equity;
+      if (config.goalType === 'debt') {
+        const baseTarget = Number(config.targetEquity) || startEquity;
+        config.targetEquity = Math.round(startEquity + (baseTarget - startEquity) * environment.targetMultiplier);
+        config.goalText = `还清 ${D.money(config.startDebt || 0)} 贷款，并让权益达到 ${D.money(config.targetEquity)}。`;
+      } else if (config.goalType === 'profit') {
+        config.targetProfit = Math.max(1, Math.round((Number(config.targetProfit) || 1) * environment.targetMultiplier));
+        config.goalText = `净赚 ${D.money(config.targetProfit)} 后收手。`;
+      }
+      config.environment = environment;
+      config.environmentTitle = environment.title;
     }
     state.peakEquity = account().equity;
     state.contract = {
@@ -667,6 +683,8 @@
       contractDone: !!(contract && contract.complete),
       contractTrades: state.contract ? (state.contract.trades || 0) : 0,
       contractGoal: state.contract ? state.contract.goalText : null,
+      environmentId: state.contract?.environment?.id || null,
+      environmentTitle: state.contract?.environmentTitle || null,
       endingId: ending ? ending.id : null,
       endingTitle: ending ? ending.title : null,
       endingText: ending ? ending.text : null,
@@ -895,16 +913,23 @@
   function triggerSimNews(preferredId = null) {
     let template = preferredId ? SIM_NEWS.find(item => item.id === preferredId) : null;
     if (!template) {
+      const environment = state.contract?.environment;
       const breaking = SIM_NEWS.filter(item => item.kind === 'breaking' && item.bias?.[state.pair] && !activeSimNews.some(event => event.id === item.id));
       const hasBreaking = activeSimNews.some(event => event.kind === 'breaking');
-      if (breaking.length && !hasBreaking && Math.random() < 0.18) {
+      const breakChance = environment?.id === 'central' ? 0.28 : 0.18;
+      if (breaking.length && !hasBreaking && Math.random() < breakChance) {
         template = breaking[Math.floor(Math.random() * breaking.length)];
       } else {
         const available = SIM_NEWS.filter(item => item.kind !== 'breaking' && item.kind !== 'flavor' && !item.chainOnly && !activeSimNews.some(event => event.title === item.title));
+        const memes = environment?.id === 'rumor'
+          ? available.filter(item => item.tone === 'meme')
+          : [];
         const rare = available.filter(item => item.rare);
-        template = rare.length && Math.random() < 0.12
-          ? rare[Math.floor(Math.random() * rare.length)]
-          : available[Math.floor(Math.random() * available.length)];
+        template = environment?.id === 'rumor' && memes.length && Math.random() < 0.3
+          ? memes[Math.floor(Math.random() * memes.length)]
+          : rare.length && Math.random() < 0.12
+            ? rare[Math.floor(Math.random() * rare.length)]
+            : available[Math.floor(Math.random() * available.length)];
       }
     }
     if (!template || (template.id && activeSimNews.some(event => event.id === template.id))) return;
@@ -918,7 +943,7 @@
       volatility: Number(template.volatility) || 1.3
     });
     if (activeSimNews.length > 3) activeSimNews.shift();
-    const range = NEWS_FREQ_TICKS[settings.newsFreq] || NEWS_FREQ_TICKS.mid;
+    const range = NEWS_FREQ_TICKS[state.contract?.environment?.newsFreq || settings.newsFreq] || NEWS_FREQ_TICKS.mid;
     simNewsTicks = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
     pushNews({
       tag: template.tone === 'meme' ? '' : template.tag,
@@ -940,7 +965,9 @@
     const pool = SIM_NEWS.filter(item => item.kind === 'flavor' && !recent.has(item.title));
     const pick = (pool.length ? pool : SIM_NEWS.filter(item => item.kind === 'flavor'))[Math.floor(Math.random() * (pool.length || 1))];
     if (!pick) return;
-    simFlavorTicks = 12 + Math.floor(Math.random() * 14);
+    simFlavorTicks = state.contract?.environment?.id === 'rumor'
+      ? 8 + Math.floor(Math.random() * 10)
+      : 12 + Math.floor(Math.random() * 14);
     pushNews({
       tag: '', title: pick.title, body: pick.body,
       quote: pick.quote || '', tone: 'flavor', kind: 'flavor', date: '生活'
@@ -969,7 +996,8 @@
         volatility += Math.max(0, (Number(event.volatility) || 1.3) - 1);
       });
       eventBias = Math.max(-0.0025, Math.min(0.0025, eventBias));
-      volatility = Math.min(2.8, volatility);
+      const environmentVolatility = Number(state.contract?.environment?.volatility) || 1;
+      volatility = Math.min(3.2, volatility * environmentVolatility);
       const shock = Math.random() < 0.018 * volatility ? (Math.random() - 0.5) * 0.019 : 0;
       const close = Math.max(open * 0.5, open * (1 + drift + (Math.random() - 0.5) * 0.0042 * volatility + shock + eventBias));
       const wick = open * (Math.random() * 0.0007 + 0.00015);

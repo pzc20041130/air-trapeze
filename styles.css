@@ -1076,6 +1076,17 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 .contract-stepper { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .contract-stepper .outline-button { padding: 7px 12px; font-size: 10.5px; }
 .contract-progress { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.environment-modal { width: min(820px, 94vw); }
+.environment-list { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.environment-card { display: flex; flex-direction: column; gap: 7px; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-tint); min-width: 0; }
+.environment-card.calm { border-color: #cfe1da; background: linear-gradient(160deg, #f5fbf7, var(--surface)); }
+.environment-card.central { border-color: #e8c8b0; background: linear-gradient(160deg, #fff8ef, var(--surface)); }
+.environment-card.rumor { border-color: #d9d1ea; background: linear-gradient(160deg, #faf7ff, var(--surface)); }
+.environment-card h3 { font-size: 15px; color: var(--text-deep); }
+.environment-card p { font-size: 10.5px; line-height: 1.65; color: var(--text-muted); white-space: pre-line; flex: 1; }
+.environment-card small { font-size: 9px; line-height: 1.5; color: var(--accent-deep); }
+.environment-card button { border: 0; border-radius: 8px; padding: 9px; background: var(--surface); color: var(--text-deep); font-size: 10.5px; font-weight: 800; }
+.environment-card button:hover { background: var(--tint-green); }
 .contract-card {
   border: 1px solid var(--border); border-radius: 14px; background: var(--surface-tint);
   padding: 14px 15px; display: flex; flex-direction: column; gap: 7px;
@@ -1106,6 +1117,7 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 @media (max-width: 720px) {
   .endings-list { grid-template-columns: 1fr; max-height: 48vh; }
   .active-events { grid-template-columns: 1fr; }
+  .environment-list { grid-template-columns: 1fr; }
   .contract-list { grid-template-columns: 1fr; }
   .contract-bg { min-height: 0; }
 }

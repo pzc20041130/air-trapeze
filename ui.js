@@ -31,6 +31,7 @@
   let tutorialPractice = false;
   let tickerKey = '';
   let contractIndex = 0;
+  let pendingContractId = null;
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
@@ -191,15 +192,15 @@
     contractLine.classList.toggle('hidden', !hasContract);
     if (hasContract) {
       const done = !!contract.complete;
-      contractChip.textContent = `${contract.title}${done ? ' · 达成' : ''}`;
+      contractChip.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}${done ? ' · 达成' : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
       contractLine.className = 'contract-line' + (done ? ' done' : '');
       if (done) {
         contractLine.textContent = '目标达成。现在收手，还是再贪一点？';
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${contract.title} · 权益 ${D.money(a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       } else {
-        contractLine.textContent = `${contract.title} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       }
     }
     const closed = !!s.runClosed;
@@ -869,6 +870,7 @@
       ? `合同：${summary.contractTitle} · ${summary.contractDone ? '已完成' : '未完成'}${summary.grade ? ` · 评级 ${summary.grade}` : ''}\n`
       : '';
     const endingLine = endingTitle ? `结局：${endingTitle}\n` : '';
+    const environmentLine = summary.environmentTitle ? `环境：${summary.environmentTitle}\n` : '';
     openModal({
       icon: bankrupt ? '✕' : '■',
       loss: bankrupt || summary.equity <= 0,
@@ -880,7 +882,7 @@
         : bankrupt
           ? `${player}，行情穿过了保证金，本局结束。好消息是，游戏结束了。`
           : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`,
-      detail: `${contractLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`,
+      detail: `${contractLine}${environmentLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`,
       preline: true,
       confirm: '再来一局',
       cancelText: '先看看',
@@ -954,7 +956,7 @@
       card.tabIndex = 0;
       card.innerHTML = `<div class="case-top"><span>${formatCaseDate(item.date)}</span><span class="case-badge ${item.reason || 'cashout'}">${reason}</span></div>
         <div class="case-title"><span>${mode} · ${safety}</span><em class="${item.equity >= 0 ? 'positive' : 'negative'}">${D.money(item.equity)}</em></div>
-        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
+        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
         <div class="case-detail"></div>`;
       const eventLines = (item.events || []).map(event => {
         const effects = [];
@@ -968,6 +970,7 @@
         `最大回撤：${D.money(item.drawdown)}`,
         `待还贷款：${D.money(item.debt)}${item.airborneLine ? ` · 空中飞人线：${D.money(item.airborneLine)}` : ''}`,
         item.contractTitle ? `合同：${item.contractTitle} · ${item.contractDone ? '已完成' : '未完成'}${item.grade ? ` · 评级 ${item.grade}` : ''}` : '',
+        item.environmentTitle ? `环境：${item.environmentTitle}` : '',
         item.endingTitle ? `结局：${item.endingTitle}\n${item.endingText || ''}` : '',
         eventLines.length ? `本局事件：\n${eventLines.join('\n')}` : '',
         `交易笔数：${item.trades || 0} · 爆仓：${item.liquidations || 0} · 「最后一次」× ${item.lastOneCount || 0}`,
@@ -1082,16 +1085,59 @@
     contractPromptTimer = setTimeout(openContractPicker, 220);
   }
 
-  function selectContract(id) {
-    if (!E.startContract(id)) {
+  function startSelectedContract(id, environmentId = null) {
+    if (!E.startContract(id, environmentId)) {
       toast('现在不能签合同：请先结束当前这一局。');
-      return;
+      return false;
     }
     $('contractModal').classList.add('hidden');
+    $('environmentModal').classList.add('hidden');
+    pendingContractId = null;
     stopPractice();
     const item = (D.CONTRACTS || []).find(entry => entry.id === id);
-    toast(id === 'free' ? '自由模式：没有目标，想走就走。' : `已签下「${item ? item.title : '合同'}」。`);
+    const env = (D.ENVIRONMENTS || []).find(entry => entry.id === environmentId);
+    toast(id === 'free'
+      ? '自由模式：没有目标，想走就走。'
+      : `已签下「${item ? item.title : '合同'}」${env ? ` · ${env.title}` : ''}。`);
     render();
+    return true;
+  }
+
+  function selectContract(id) {
+    if (id === 'free' || E.settings.coachMode) {
+      startSelectedContract(id);
+      return;
+    }
+    pendingContractId = id;
+    $('contractModal').classList.add('hidden');
+    renderEnvironmentCards();
+    $('environmentModal').classList.remove('hidden');
+  }
+
+  function renderEnvironmentCards() {
+    const root = $('environmentList');
+    root.replaceChildren();
+    const base = (D.CONTRACTS || []).find(item => item.id === pendingContractId);
+    if (!base) return;
+    (D.ENVIRONMENTS || []).forEach(env => {
+      let targetText = '';
+      if (base.goalType === 'profit') {
+        targetText = `目标：净赚 ${D.money(Math.round((base.targetProfit || 0) * env.targetMultiplier))}`;
+      } else if (base.goalType === 'debt') {
+        const startEquity = 10000 - (base.startDebt || 0);
+        const target = Math.round(startEquity + ((base.targetEquity || startEquity) - startEquity) * env.targetMultiplier);
+        targetText = `目标：权益 ${D.money(target)}`;
+      }
+      const card = document.createElement('div');
+      card.className = `environment-card ${env.tone || ''}`;
+      card.innerHTML = `<span class="contract-kicker">${env.kicker}</span>
+        <h3>${env.title}</h3>
+        <p>${env.desc}</p>
+        <small>${targetText}<br>新闻频率：${env.newsFreq === 'low' ? '低' : env.newsFreq === 'high' ? '高' : '中'} · 波动 ×${env.volatility}</small>
+        <button type="button">按这个环境开始</button>`;
+      card.querySelector('button').addEventListener('click', () => startSelectedContract(pendingContractId, env.id));
+      root.append(card);
+    });
   }
 
   function showPracticeHint(text) {
@@ -1807,6 +1853,20 @@
     });
 
     $('contractClose').addEventListener('click', () => selectContract('free'));
+    $('environmentClose').addEventListener('click', () => {
+      $('environmentModal').classList.add('hidden');
+      pendingContractId = null;
+      $('contractModal').classList.remove('hidden');
+      renderContractCards();
+    });
+    $('environmentModal').addEventListener('click', event => {
+      if (event.target === $('environmentModal')) {
+        $('environmentModal').classList.add('hidden');
+        pendingContractId = null;
+        $('contractModal').classList.remove('hidden');
+        renderContractCards();
+      }
+    });
     $('contractPrev').addEventListener('click', () => {
       const total = (D.CONTRACTS || []).length;
       contractIndex = (contractIndex - 1 + total) % total;
@@ -1901,10 +1961,16 @@
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
         if (modalOpen) { closeModal(); return; }
-        const layers = ['endingsModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
+        const layers = ['endingsModal', 'environmentModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
         const open = layers.find(id => !$(id).classList.contains('hidden'));
         if (open === 'tutorial') closeTutorial();
         else if (open === 'endingsModal') closeEndings();
+        else if (open === 'environmentModal') {
+          $('environmentModal').classList.add('hidden');
+          pendingContractId = null;
+          $('contractModal').classList.remove('hidden');
+          renderContractCards();
+        }
         else if (open === 'contractModal') selectContract('free');
         else if (open === 'settingsModal') { commitNickname(); $(open).classList.add('hidden'); }
         else if (open) $(open).classList.add('hidden');

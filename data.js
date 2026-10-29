@@ -521,8 +521,26 @@
     }
   };
 
+  const ENVIRONMENTS = [
+    {
+      id: 'calm', title: '平静周', kicker: 'LOW VOLATILITY', tone: 'calm',
+      desc: '新闻更少，行情更慢，目标也更低。\n适合稳着打，先把合同做完。',
+      targetMultiplier: 0.85, newsFreq: 'low', volatility: 0.8
+    },
+    {
+      id: 'central', title: '央行周', kicker: 'HIGH VOLATILITY', tone: 'central',
+      desc: '重大事件更多，波动更大，目标也更高。\n适合敢判断、敢下注的人。',
+      targetMultiplier: 1.15, newsFreq: 'high', volatility: 1.25
+    },
+    {
+      id: 'rumor', title: '传闻周', kicker: 'RUMOR MILL', tone: 'rumor',
+      desc: '整活和传闻更多，行情忽上忽下。\n目标不变，但你要自己分辨真假。',
+      targetMultiplier: 1, newsFreq: 'mid', volatility: 1.05
+    }
+  ];
+
   window.FXData = {
-    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENDINGS,
+    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENVIRONMENTS, ENDINGS,
     LOAN_MAX, loanDailyRate, tradeFee,
     money, signedMoney, pct, priceText, rateText,
     CHALLENGE_BOARD_SIZE: 3,
