@@ -170,7 +170,11 @@
     } else {
       contract.eventReady = false;
       const nextAct = Math.min(3, act + 1);
-      if (nextAct > act && act < 3 && !settings.coachMode) contract.pendingShop = true;
+      if (nextAct > act && act < 3 && !settings.coachMode) {
+        contract.pendingShop = true;
+        contract.playstyle = contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+        contract.playstyle.shopVisits += 1;
+      }
       contract.act = nextAct;
     }
     contract.eventLog = contract.eventLog || [];
@@ -213,6 +217,8 @@
     state.cash -= item.price;
     contract.pendingShop = false;
     contract.shopPurchased = item.id;
+    contract.playstyle = contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+    contract.playstyle.shopBuys += 1;
     save();
     emit();
     return { ok: true, item };
@@ -227,6 +233,20 @@
     return true;
   }
 
+  function playstyleTags() {
+    if (!isContractActive() || settings.coachMode) return [];
+    const style = state.contract.playstyle || {};
+    const tags = [];
+    if (style.newsTrades >= 2) tags.push({ id: 'news', label: '消息猎手', desc: '两次在重大事件里开仓' });
+    if (style.stopCount >= 2) tags.push({ id: 'stop', label: '止损机器', desc: '两次让系统替你止损' });
+    if (style.allIn >= 1) tags.push({ id: 'allin', label: '满仓赌徒', desc: '单笔押上半个账户' });
+    if (style.longHolds >= 1) tags.push({ id: 'hold', label: '扛单王', desc: '有一笔扛了 10 根 K 线' });
+    if (style.shopVisits > 0 && style.shopBuys === 0) tags.push({ id: 'frugal', label: '铁公鸡', desc: '幕间一分钱没花' });
+    if (style.smallTrades >= 2) tags.push({ id: 'small', label: '房租战士', desc: '两笔以上只用最小仓位' });
+    if (state.lastOneCount > 0) tags.push({ id: 'last', label: '最后一把', desc: '按过「最后一次」' });
+    return tags.slice(0, 3);
+  }
+
   function contractGrade() {
     if (!isContractActive()) return null;
     const status = contractStatus();
@@ -234,7 +254,11 @@
     if (state.runClosed && state.closeReason === 'bankrupt') return 'D';
     if (status.complete) {
       const used = status.trades || 0;
-      return used <= Math.ceil((status.maxTrades || 99) * 0.6) ? 'S' : 'A';
+      const peak = Math.max(Number(state.peakEquity) || account().equity, account().equity);
+      const drawdown = peak > 0 ? Math.max(0, peak - account().equity) / peak : 0;
+      if (used <= Math.ceil((status.maxTrades || 99) * 0.6) && drawdown <= 0.12) return 'S';
+      if (used <= Math.ceil((status.maxTrades || 99) * 0.8) && drawdown <= 0.25) return 'A';
+      return 'B';
     }
     return account().equity >= state.contract.startEquity ? 'B' : 'C';
   }
@@ -332,6 +356,7 @@
       actEnds,
       pendingShop: false,
       shopPurchased: null,
+      playstyle: { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
       eventIndex: 0,
@@ -384,6 +409,9 @@
       state.contract.act = Math.max(1, Math.min(3, Number(state.contract.act) || 1));
       state.contract.pendingShop = !!state.contract.pendingShop;
       state.contract.shopPurchased = state.contract.shopPurchased || null;
+      state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
+        ? { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
+        : { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
       state.contract.eventPending = false;
       state.contract.eventReady = false;
       state.contract.eventLog = Array.isArray(state.contract.eventLog) ? state.contract.eventLog : [];
@@ -603,15 +631,26 @@
     const stopPrices = validateStopPrices(side, entry, margin, state.leverage, stops);
     if (stopPrices.error) { toast(stopPrices.error); return null; }
     const isFirstTrade = state.history.length === 0 && state.positions.length === 0;
+    const majorActive = activeSimNews.some(event => event.kind === 'breaking' || event.rare || event.tone === 'breaking');
+    const cashBefore = state.cash;
     state.margin = margin;
     state.cash -= margin + fee;
     state.feesPaid = (state.feesPaid || 0) + fee;
+    if (isContractActive()) {
+      const c = state.contract;
+      c.playstyle = c.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+      c.playstyle.trades = (c.playstyle.trades || 0) + 1;
+      if (majorActive) c.playstyle.newsTrades += 1;
+      if (margin >= Math.max(1, cashBefore) * 0.5) c.playstyle.allIn += 1;
+      if (margin <= 100) c.playstyle.smallTrades += 1;
+    }
     const position = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       pair: state.pair, side, entry, margin, leverage: state.leverage,
       notional: margin * state.leverage, fee, warned: false, borrowed: false,
       stopPrice: stopPrices.stopPrice, takePrice: stopPrices.takePrice,
-      loseMs: 0, loseDays: 0, opened: new Date().toLocaleString('zh-CN')
+      loseMs: 0, loseDays: 0, openedTick: simTickCount,
+      opened: new Date().toLocaleString('zh-CN')
     };
     state.positions.unshift(position);
     if (isContractActive()) state.contract.trades = (state.contract.trades || 0) + 1;
@@ -654,6 +693,13 @@
       state.contract.insuranceRelief = insuranceRelief;
     }
     state.positions.splice(index, 1);
+    if (isContractActive()) {
+      const style = state.contract.playstyle = state.contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+      if (meta.trigger === 'stop') style.stopCount += 1;
+      if (liquidated) style.blowups += 1;
+      if (Number.isFinite(pos.openedTick) && simTickCount - pos.openedTick >= 10) style.longHolds += 1;
+      if (pnl > 0) style.wins = (style.wins || 0) + 1;
+    }
     state.history.unshift({
       pair: pos.pair, side: pos.side, pnl, liquidated: !!liquidated,
       trigger: meta.trigger || null, triggerPrice: meta.triggerPrice ?? null,
@@ -772,6 +818,7 @@
       endingText: ending ? ending.text : null,
       events: state.contract ? (state.contract.eventLog || []) : [],
       flags: state.contract ? (state.contract.flags || {}) : {},
+      playstyle: playstyleTags(),
       grade: contractGrade(),
       trades: state.history.length,
       liquidations: state.history.filter(item => item.liquidated).length

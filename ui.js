@@ -873,6 +873,7 @@
       : '';
     const endingLine = endingTitle ? `结局：${endingTitle}\n` : '';
     const environmentLine = summary.environmentTitle ? `环境：${summary.environmentTitle}\n` : '';
+    const styleLine = summary.playstyle?.length ? `本局流派：${summary.playstyle.map(item => item.label).join(' / ')}\n` : '';
     openModal({
       icon: bankrupt ? '✕' : '■',
       loss: bankrupt || summary.equity <= 0,
@@ -884,7 +885,7 @@
         : bankrupt
           ? `${player}，行情穿过了保证金，本局结束。好消息是，游戏结束了。`
           : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`,
-      detail: `${contractLine}${environmentLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`,
+      detail: `${contractLine}${environmentLine}${styleLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`,
       preline: true,
       confirm: '再来一局',
       cancelText: '先看看',
@@ -958,7 +959,7 @@
       card.tabIndex = 0;
       card.innerHTML = `<div class="case-top"><span>${formatCaseDate(item.date)}</span><span class="case-badge ${item.reason || 'cashout'}">${reason}</span></div>
         <div class="case-title"><span>${mode} · ${safety}</span><em class="${item.equity >= 0 ? 'positive' : 'negative'}">${D.money(item.equity)}</em></div>
-        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
+        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.playstyle?.length ? ` · 流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
         <div class="case-detail"></div>`;
       const eventLines = (item.events || []).map(event => {
         const effects = [];
@@ -973,6 +974,7 @@
         `待还贷款：${D.money(item.debt)}${item.airborneLine ? ` · 空中飞人线：${D.money(item.airborneLine)}` : ''}`,
         item.contractTitle ? `合同：${item.contractTitle} · ${item.contractDone ? '已完成' : '未完成'}${item.grade ? ` · 评级 ${item.grade}` : ''}` : '',
         item.environmentTitle ? `环境：${item.environmentTitle}` : '',
+        item.playstyle?.length ? `流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : '',
         item.endingTitle ? `结局：${item.endingTitle}\n${item.endingText || ''}` : '',
         eventLines.length ? `本局事件：\n${eventLines.join('\n')}` : '',
         `交易笔数：${item.trades || 0} · 爆仓：${item.liquidations || 0} · 「最后一次」× ${item.lastOneCount || 0}`,
