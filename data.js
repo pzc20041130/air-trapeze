@@ -410,7 +410,7 @@
       background: 'HR 说「公司感谢你的贡献」。\n你算了算，赔偿金只够交两个月房租。\n招聘软件上全是已读不回。\n你决定先赚 $1,500 过渡费。\n你告诉自己：找到工作就收手。',
       goalText: '净赚 $1,500 后收手。', limitText: '最多 8 笔交易',
       specialText: '初始现金 $6,000；不开放借款。', goalType: 'profit', startCash: 6000, targetProfit: 1500, maxTrades: 8, noLoans: true,
-      coachTargetProfit: 500, coachGoalText: '净赚 $500 后收手。',
+      coachTargetProfit: 200, coachGoalText: '净赚 $200 后收手。',
       events: [
         {
           id: 'layoff-1', at: 1, act: 1, title: 'HR 约谈',
