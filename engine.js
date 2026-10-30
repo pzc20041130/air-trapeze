@@ -671,6 +671,7 @@
       if (margin <= 100) c.playstyle.smallTrades += 1;
       const minimumActMargin = Math.max(10, (Number(c.startEquity) || 10000) * 0.01);
       if (margin >= minimumActMargin - 0.001) c.actTrades = (Number(c.actTrades) || 0) + 1;
+      else setTimeout(() => toast(`这笔太小：本幕有效交易至少要 ${D.money(minimumActMargin)} 保证金。`), 220);
     }
     const position = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1898,7 +1899,13 @@
   }
 
   function saveSettings(patch) {
-    settings = { ...settings, ...(patch || {}) };
+    const next = { ...(patch || {}) };
+    const coachLocked = isContractActive() && !state.runClosed && state.mode === 'sim';
+    if (coachLocked && Object.prototype.hasOwnProperty.call(next, 'coachMode') && next.coachMode !== settings.coachMode) {
+      delete next.coachMode;
+      toast('合同进行中，教练模式已锁定。');
+    }
+    settings = { ...settings, ...next };
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
     if (window.FXAudio) FXAudio.configure(settings);
     emit();

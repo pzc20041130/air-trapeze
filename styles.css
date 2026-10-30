@@ -596,6 +596,7 @@ body.coach-mode { padding-bottom: 0 !important; }
 .coach-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
 .coach-head > span { font-size: 9px; letter-spacing: 0.12em; font-weight: 900; color: var(--accent-deep); }
 .coach-head .text-button { font-size: 9px; padding: 2px 0; color: var(--text-dim); }
+.coach-head .text-button:disabled { opacity: 0.45; cursor: not-allowed; }
 .coach-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 18px; }
 .coach-price-row span { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
 .coach-price-row strong { font-family: var(--font-mono); font-size: 28px; letter-spacing: -0.04em; color: var(--text-deep); }

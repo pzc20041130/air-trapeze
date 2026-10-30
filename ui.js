@@ -193,15 +193,17 @@
     if (hasContract) {
       const done = !!contract.complete;
       const actLabel = ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
+      const actEnd = contract.actEnds ? contract.actEnds[(Number(contract.act) || 1) - 1] : null;
+      const effectiveLabel = actEnd ? ` · 有效 ${contract.actTrades || 0}/${actEnd}` : '';
       contractChip.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}${done ? ' · 达成' : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
       contractLine.className = 'contract-line' + (done ? ' done' : '');
       if (done) {
         contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel}`;
       } else {
-        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel}`;
       }
     }
     const closed = !!s.runClosed;
@@ -248,6 +250,11 @@
     return !!(E.settings.coachMode && E.state.mode === 'sim');
   }
 
+  function coachLocked() {
+    const s = E.state;
+    return s.mode === 'sim' && !!s.contract && s.contract.id !== 'free' && !s.runClosed;
+  }
+
   function submitCoachOrder(side) {
     if (!coachActive() || E.state.runClosed || E.state.positions.length || E.contractBlocked()) return;
     E.setMargin(100);
@@ -262,9 +269,12 @@
 
   function renderCoachPanel() {
     const active = coachActive();
+    const locked = coachLocked();
     document.body.classList.toggle('coach-mode', active);
     $('coachOrder').classList.toggle('hidden', !active);
     if (!active) return;
+    $('coachExit').disabled = locked;
+    $('coachExit').textContent = locked ? '合同内锁定' : '切回完整界面';
     const s = E.state;
     $('coachPair').textContent = s.pair;
     $('coachPrice').textContent = D.priceText(s.pair, E.price(s.pair));
@@ -1454,6 +1464,11 @@
     $('nicknameInput').value = s.nickname || '大肥鱼';
     $('advancedToggle').checked = !!s.advancedTrading;
     $('coachToggle').checked = !!s.coachMode;
+    const settingsLocked = coachLocked();
+    $('coachToggle').disabled = settingsLocked;
+    $('coachSettingHint').textContent = settingsLocked
+      ? '合同进行中已锁定；收手或结束后再切换'
+      : '只保留涨/跌，自动押 $100、5×，自动止损止盈';
     $('sfxToggle').checked = s.sfxOn;
     $('sfxVolume').value = s.sfxVol;
     $('musicToggle').checked = s.musicOn;
@@ -1598,6 +1613,10 @@
       if (pos) E.closePosition(pos.id, false);
     });
     $('coachExit').addEventListener('click', () => {
+      if (coachLocked()) {
+        toast('合同进行中，教练模式已锁定；收手或结束后再切换。');
+        return;
+      }
       E.saveSettings({ coachMode: false });
       render();
       toast('已切回完整界面。设置里可以重新打开教练模式。');
@@ -1808,6 +1827,11 @@
       toast(event.target.checked ? '进阶交易已开启：下单时可以填止损/止盈。' : '进阶交易已关闭。');
     });
     $('coachToggle').addEventListener('change', event => {
+      if (coachLocked()) {
+        event.target.checked = !!E.settings.coachMode;
+        toast('合同进行中，教练模式已锁定。');
+        return;
+      }
       E.saveSettings({ coachMode: event.target.checked });
       render();
       toast(event.target.checked ? '教练模式已开启：只保留涨/跌。' : '已切回完整界面。');
