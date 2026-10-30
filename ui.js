@@ -874,10 +874,42 @@
     });
   }
 
+  function restartAfterSettlement() {
+    const mode = E.state.mode;
+    closeModal();
+    E.resetMode();
+    if (mode === 'real') E.loadReal();
+    if (mode === 'sim') maybeOpenContractPicker();
+  }
+
   function showSettlementModal(summary) {
     const bankrupt = summary.reason === 'bankrupt';
     const player = E.settings.nickname || '大肥鱼';
     const endingTitle = summary.endingTitle || '';
+    if (summary.coachMode) {
+      const contract = summary.contractTitle
+        ? `合同：${summary.contractTitle} · ${summary.contractDone ? '完成' : '没完成'}\n`
+        : '';
+      const ending = endingTitle ? `结局：${endingTitle}\n` : '';
+      openModal({
+        icon: bankrupt ? '✕' : '■',
+        loss: bankrupt || summary.equity <= 0,
+        title: bankrupt ? `账户穿仓 · ${endingTitle || '本局结束'}` : `收手离场 · ${endingTitle || '本局结束'}`,
+        message: summary.endingText
+          ? summary.endingText
+          : bankrupt
+            ? `${player}，行情穿过了押金，本局结束。`
+            : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`,
+        detail: `${contract}${ending}最终权益 ${D.money(summary.equity)}\n教练模式：目标降级，不参与标准评级和流派。`,
+        preline: true,
+        confirm: '再来一局',
+        cancelText: '先看看',
+        extraText: '查看病历库',
+        extraAction: () => { closeModal(); openCases(); },
+        action: restartAfterSettlement
+      });
+      return;
+    }
     const contractLine = summary.contractTitle
       ? `合同：${summary.contractTitle} · ${summary.contractDone ? '已完成' : '未完成'}${summary.grade ? ` · 评级 ${summary.grade}` : ''}\n`
       : '';
@@ -901,13 +933,7 @@
       cancelText: '先看看',
       extraText: '查看病历库',
       extraAction: () => { closeModal(); openCases(); },
-      action: () => {
-        const mode = E.state.mode;
-        closeModal();
-        E.resetMode();
-        if (mode === 'real') E.loadReal();
-        if (mode === 'sim') maybeOpenContractPicker();
-      }
+      action: restartAfterSettlement
     });
   }
 
@@ -936,6 +962,7 @@
   /* ================= 病历库 ================= */
   const CASE_MODES = { sim: '模拟数据', real: '真实数据', battle: '经典战役', challenge: '每日挑战' };
   const CASE_REASONS = { cashout: '收手', bankrupt: '穿仓', challenge: '挑战结算' };
+  const STYLE_TOTAL = 7;
 
   function formatCaseDate(iso) {
     const date = new Date(iso);
@@ -949,6 +976,16 @@
     $('casesSummary').textContent = all.length
       ? `共 ${all.length} 份病历，当前显示 ${list.length} 份。每局收手、穿仓或挑战结算后自动建档。`
       : '还没有病历。去开一局，然后收手或让账户穿仓。';
+    const standard = all.filter(item => !item.coachMode);
+    const rank = { D: 0, C: 1, B: 2, A: 3, S: 4 };
+    const best = standard.reduce((current, item) => (rank[item.grade] ?? -1) > (rank[current] ?? -1) ? item.grade : current, null);
+    const sCount = standard.filter(item => item.grade === 'S').length;
+    const completed = standard.filter(item => item.contractDone).length;
+    const styles = new Set();
+    standard.forEach(item => (item.playstyle || []).forEach(tag => { if (tag.id) styles.add(tag.id); }));
+    $('caseStats').textContent = standard.length
+      ? `标准病历 ${standard.length} · 教练局 ${all.length - standard.length} · 最佳评级 ${best || '—'} · S ${sCount} 次 · 合同完成 ${completed} 次 · 流派 ${styles.size}/${STYLE_TOTAL}`
+      : '还没有标准病历。教练局不计入最佳评级和流派收集。';
     if ($('caseCount')) $('caseCount').textContent = all.length;
     [...$('casesFilter').children].forEach(btn => btn.classList.toggle('active', btn.dataset.mode === casesFilter));
     $('casesClear').disabled = all.length === 0;
@@ -969,7 +1006,7 @@
       card.tabIndex = 0;
       card.innerHTML = `<div class="case-top"><span>${formatCaseDate(item.date)}</span><span class="case-badge ${item.reason || 'cashout'}">${reason}</span></div>
         <div class="case-title"><span>${mode} · ${safety}</span><em class="${item.equity >= 0 ? 'positive' : 'negative'}">${D.money(item.equity)}</em></div>
-        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.playstyle?.length ? ` · 流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
+        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.coachMode ? ' · 教练局' : ''}${item.playstyle?.length ? ` · 流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
         <div class="case-detail"></div>`;
       const eventLines = (item.events || []).map(event => {
         const effects = [];
@@ -1257,9 +1294,14 @@
       button.className = 'event-choice';
       button.textContent = choice.label;
       button.addEventListener('click', () => {
+        const giftBefore = Number(E.state.contract?.giftIncome) || 0;
         E.resolveContractEvent(event.id, index);
+        const giftAfter = Number(E.state.contract?.giftIncome) || 0;
         $('eventModal').classList.add('hidden');
         render();
+        if (giftAfter > giftBefore) {
+          setTimeout(() => toast(`${D.money(giftAfter - giftBefore)} 生活费 · 不计入合同进度`), 180);
+        }
         if (E.state.contract?.eventReady) setTimeout(() => E.maybeContractEvent(), 180);
         else if (E.state.contract?.pendingShop) setTimeout(openShop, 220);
       });

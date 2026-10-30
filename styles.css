@@ -834,6 +834,7 @@ html[data-theme="night"] .loan-actions button:hover:not(:disabled) { background:
 .ach-cases-btn span { font-family: var(--font-mono); color: var(--accent-deep); margin-left: 2px; }
 .cases-modal { width: min(780px, 94vw); }
 .cases-summary { margin-top: 8px; font-size: 11.5px; line-height: 1.65; color: var(--text-muted); }
+.case-stats { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface-tint); border: 1px solid var(--border-soft); font-family: var(--font-mono); font-size: 9.5px; line-height: 1.6; color: var(--accent-deep); }
 .cases-filter { margin: 12px 0 0; flex-wrap: wrap; }
 .cases-toolbar { margin-top: 8px; display: flex; justify-content: flex-end; }
 .cases-endings-btn { padding: 6px 10px; font-size: 10.5px; border-radius: 8px; }
@@ -1126,6 +1127,7 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
   border-radius: 10px; padding: 11px 13px; font-size: 11.5px; font-weight: 800; color: var(--text-deep);
 }
 .event-choice:hover { background: var(--tint-green); border-color: var(--border-panel-green); color: var(--green-text); }
+.event-gift-hint { margin-top: 10px; font-size: 9px; line-height: 1.55; color: var(--text-dim); }
 @media (max-width: 720px) {
   .endings-list { grid-template-columns: 1fr; max-height: 48vh; }
   .active-events { grid-template-columns: 1fr; }

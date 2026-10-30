@@ -273,7 +273,9 @@
     { id: 'honest-work', name: '老实赚钱，很枯燥吧', desc: '完成第一次盈利平仓。', hint: '盈利平仓一次' },
     { id: 'freefall', name: '自由落体', desc: '账户权益比初始资金少了 $100,000。', hint: '权益比 $10,000 低十万' },
     { id: 'retire', name: '金盆洗手', desc: '完成一次每日挑战并结算成绩。', hint: '开始并结束一次挑战' },
-    { id: 'last-word', name: '最后一次', desc: '第 10 次按下「最后一把，回本就走」。', hint: '把「最后一次」按满十次' }
+    { id: 'last-word', name: '最后一次', desc: '第 10 次按下「最后一把，回本就走」。', hint: '把「最后一次」按满十次' },
+    { id: 'grade-s', name: 'S 级事故', desc: '在标准模式拿到一次合同 S 评级。', hint: '完成合同，少交易、低回撤' },
+    { id: 'style-collector', name: '流派收集者', desc: '在病历里集齐 5 种不同的本局流派。', hint: '换几种打法完成标准合同' }
   ];
 
   const LOAN_MAX = 200000;

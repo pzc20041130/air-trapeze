@@ -848,6 +848,7 @@
       events: state.contract ? (state.contract.eventLog || []) : [],
       flags: state.contract ? (state.contract.flags || {}) : {},
       playstyle: playstyleTags(),
+      coachMode: !!(settings.coachMode && state.mode === 'sim'),
       grade: contractGrade(),
       trades: state.history.length,
       liquidations: state.history.filter(item => item.liquidated).length
@@ -860,6 +861,12 @@
       const cases = JSON.parse(localStorage.getItem(CASES_KEY) || '[]') || [];
       cases.unshift(summary);
       localStorage.setItem(CASES_KEY, JSON.stringify(cases.slice(0, 30)));
+      if (!summary.coachMode && summary.grade === 'S') unlock('grade-s');
+      const styles = new Set();
+      cases.filter(item => !item.coachMode).forEach(item => {
+        (item.playstyle || []).forEach(tag => { if (tag.id) styles.add(tag.id); });
+      });
+      if (styles.size >= 5) unlock('style-collector');
     } catch (_) {}
   }
 
