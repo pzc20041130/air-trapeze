@@ -88,14 +88,16 @@
     if (!isContractActive()) return null;
     const c = state.contract;
     const a = account();
-    const profit = a.equity - c.startEquity;
+    const profit = a.equity - c.startEquity - (Number(c.giftIncome) || 0);
     if (c.goalType === 'debt') {
+      const gift = Number(c.giftIncome) || 0;
+      const effectiveEquity = a.equity - gift;
       const span = Math.max(1, c.targetEquity - c.startEquity);
-      const complete = state.debt <= 0 && a.equity >= c.targetEquity;
+      const complete = state.debt <= 0 && effectiveEquity >= c.targetEquity;
       return {
-        ...c, complete, profit, debt: state.debt,
-        progress: Math.max(0, Math.min(1, (a.equity - c.startEquity) / span)),
-        remaining: Math.max(0, c.targetEquity - a.equity)
+        ...c, complete, profit, debt: state.debt, effectiveEquity,
+        progress: Math.max(0, Math.min(1, (effectiveEquity - c.startEquity) / span)),
+        remaining: Math.max(0, c.targetEquity - effectiveEquity)
       };
     }
     const target = Math.max(1, c.targetProfit || 1);
@@ -123,7 +125,7 @@
     const act = Math.max(1, Math.min(3, Number(contract.act) || 1));
     const ends = Array.isArray(contract.actEnds) ? contract.actEnds : [];
     const end = Number(ends[act - 1]) || 0;
-    if ((contract.trades || 0) < end) return null;
+    if ((contract.actTrades || 0) < end) return null;
     let event = (contract.events || [])[contract.eventIndex];
     while (event && (Number(event.act) || act) < act) {
       contract.eventIndex += 1;
@@ -144,6 +146,7 @@
     if (!event || event.id !== eventId) return null;
     const choice = (event.choices || [])[Number(choiceIndex)];
     if (!choice) return null;
+    const debtBefore = state.debt;
     const effects = {
       cash: Number(choice.cash) || 0,
       debt: Number(choice.debt) || 0,
@@ -159,6 +162,8 @@
       if (state.debt <= 0) { state.loanPrincipal = 0; state.loanRate = 0; state.simLoanTicks = 0; }
     }
     if (choice.rate && state.debt > 0) state.loanRate = Math.max(0, Math.min(0.001, state.loanRate + Number(choice.rate)));
+    const equityGain = (Number(choice.cash) || 0) - (state.debt - debtBefore);
+    if (equityGain > 0) contract.giftIncome = (contract.giftIncome || 0) + equityGain;
     if (choice.flag) contract.flags[choice.flag] = true;
     contract.eventIndex += 1;
     contract.eventPending = false;
@@ -190,12 +195,21 @@
     return choice;
   }
 
+  function shopPrice(item) {
+    const contract = state.contract;
+    if (!item) return 0;
+    const discount = contract?.environment?.shopDiscount;
+    if (discount && !contract.shopDiscountUsed) return Math.max(1, Math.round(Number(item.price) * discount));
+    return Number(item.price) || 0;
+  }
+
   function buyShopItem(itemId) {
     const contract = state.contract;
     if (!contract || !contract.pendingShop) return { ok: false, message: '现在不是幕间休息。' };
     const item = (D.SHOP_ITEMS || []).find(entry => entry.id === itemId);
     if (!item) return { ok: false, message: '没有这个商品。' };
-    if (state.cash < item.price) return { ok: false, message: '现金不够。' };
+    const price = shopPrice(item);
+    if (state.cash < price) return { ok: false, message: '现金不够。' };
     if (item.id === 'intel') {
       const breaking = SIM_NEWS.filter(entry => entry.kind === 'breaking' && entry.bias?.[state.pair]
         && !activeSimNews.some(event => event.id === entry.id));
@@ -214,9 +228,10 @@
         contract.actEnds[2] = Number(contract.actEnds[2]) + 1;
       }
     }
-    state.cash -= item.price;
+    state.cash -= price;
     contract.pendingShop = false;
     contract.shopPurchased = item.id;
+    if (contract.environment?.shopDiscount && !contract.shopDiscountUsed) contract.shopDiscountUsed = true;
     contract.playstyle = contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
     contract.playstyle.shopBuys += 1;
     save();
@@ -252,15 +267,19 @@
     const status = contractStatus();
     if (!status) return null;
     if (state.runClosed && state.closeReason === 'bankrupt') return 'D';
-    if (status.complete) {
-      const used = status.trades || 0;
-      const peak = Math.max(Number(state.peakEquity) || account().equity, account().equity);
-      const drawdown = peak > 0 ? Math.max(0, peak - account().equity) / peak : 0;
-      if (used <= Math.ceil((status.maxTrades || 99) * 0.6) && drawdown <= 0.12) return 'S';
-      if (used <= Math.ceil((status.maxTrades || 99) * 0.8) && drawdown <= 0.25) return 'A';
-      return 'B';
-    }
-    return account().equity >= state.contract.startEquity ? 'B' : 'C';
+    if (!status.complete) return account().equity >= state.contract.startEquity ? 'B' : 'C';
+    const used = status.trades || 0;
+    const peak = Math.max(Number(state.peakEquity) || account().equity, account().equity);
+    const drawdown = peak > 0 ? Math.max(0, peak - account().equity) / peak : 0;
+    let grade = 'B';
+    if (used <= Math.ceil((status.maxTrades || 99) * 0.6) && drawdown <= 0.12) grade = 'S';
+    else if (used <= Math.ceil((status.maxTrades || 99) * 0.8) && drawdown <= 0.25) grade = 'A';
+    const environment = state.contract.environment;
+    const rank = { C: 0, B: 1, A: 2, S: 3 };
+    const byRank = ['C', 'B', 'A', 'S'];
+    if (environment?.gradeBonus) grade = byRank[Math.min(3, rank[grade] + environment.gradeBonus)] || grade;
+    if (environment?.gradeCap && rank[grade] > rank[environment.gradeCap]) grade = environment.gradeCap;
+    return grade;
   }
 
   function airborneThreshold() {
@@ -297,6 +316,7 @@
     }
     if (contract.id === 'layoff') {
       if (flags.preparedInterview) return ending('layoff-job');
+      if (flags.foughtSeverance) return ending('layoff-fought');
       if (flags.listenedRumor) return ending('layoff-flex');
       return ending('layoff-gig');
     }
@@ -354,8 +374,11 @@
       trades: 0,
       act: 1,
       actEnds,
+      actTrades: 0,
       pendingShop: false,
       shopPurchased: null,
+      shopDiscountUsed: false,
+      giftIncome: 0,
       playstyle: { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
@@ -407,8 +430,11 @@
         state.contract.actEnds = [Math.ceil(maxTrades / 3), Math.ceil(maxTrades * 2 / 3), maxTrades];
       }
       state.contract.act = Math.max(1, Math.min(3, Number(state.contract.act) || 1));
+      state.contract.actTrades = Math.max(0, Math.floor(Number(state.contract.actTrades) || 0));
       state.contract.pendingShop = !!state.contract.pendingShop;
       state.contract.shopPurchased = state.contract.shopPurchased || null;
+      state.contract.shopDiscountUsed = !!state.contract.shopDiscountUsed;
+      state.contract.giftIncome = Math.max(0, Number(state.contract.giftIncome) || 0);
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
         ? { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
         : { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
@@ -643,6 +669,8 @@
       if (majorActive) c.playstyle.newsTrades += 1;
       if (margin >= Math.max(1, cashBefore) * 0.5) c.playstyle.allIn += 1;
       if (margin <= 100) c.playstyle.smallTrades += 1;
+      const minimumActMargin = Math.max(10, (Number(c.startEquity) || 10000) * 0.01);
+      if (margin >= minimumActMargin - 0.001) c.actTrades = (Number(c.actTrades) || 0) + 1;
     }
     const position = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -686,7 +714,7 @@
     state.cash += pos.margin + pnl;
     let insuranceRelief = 0;
     if (isContractActive() && state.contract.insurance && pnl < 0 && (meta.trigger === 'stop' || liquidated)) {
-      insuranceRelief = Math.min(20, Math.abs(pnl) * 0.5);
+      insuranceRelief = Math.min(50, Math.abs(pnl));
       state.cash += insuranceRelief;
       state.contract.insurance = false;
       state.contract.insuranceUsed = true;
@@ -1933,6 +1961,7 @@
     contractNoLoans,
     maybeContractEvent,
     buyShopItem,
+    shopPrice,
     skipShop,
     resolveContractEvent,
     setDifficulty,

@@ -199,7 +199,7 @@
       if (done) {
         contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
+        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       } else {
         contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}`;
       }
@@ -1110,13 +1110,15 @@
     const root = $('shopList');
     root.replaceChildren();
     (D.SHOP_ITEMS || []).forEach(item => {
+      const price = E.shopPrice(item);
+      const discounted = price < item.price;
       const card = document.createElement('div');
       card.className = 'shop-card';
       card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
         <h3>${item.title}</h3>
         <p>${item.desc}</p>
-        <span class="shop-price">${D.money(item.price)}</span>
-        <button type="button"${cash < item.price ? ' disabled' : ''}>${cash < item.price ? '现金不够' : '买下'}</button>`;
+        <span class="shop-price">${D.money(price)}${discounted ? ` <s>${D.money(item.price)}</s>` : ''}</span>
+        <button type="button"${cash < price ? ' disabled' : ''}>${cash < price ? '现金不够' : '买下'}</button>`;
       card.querySelector('button').addEventListener('click', () => {
         const result = E.buyShopItem(item.id);
         if (!result.ok) {
@@ -1180,7 +1182,7 @@
       card.innerHTML = `<span class="contract-kicker">${env.kicker}</span>
         <h3>${env.title}</h3>
         <p>${env.desc}</p>
-        <small>${targetText}<br>新闻频率：${env.newsFreq === 'low' ? '低' : env.newsFreq === 'high' ? '高' : '中'} · 波动 ×${env.volatility}</small>
+        <small>${targetText}<br>新闻频率：${env.newsFreq === 'low' ? '低' : env.newsFreq === 'high' ? '高' : '中'} · 波动 ×${env.volatility}<br>${env.rewardText || ''}</small>
         <button type="button">按这个环境开始</button>`;
       card.querySelector('button').addEventListener('click', () => startSelectedContract(pendingContractId, env.id));
       root.append(card);

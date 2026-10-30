@@ -341,9 +341,9 @@
     },
     {
       id: 'rent', kicker: 'CONTRACT 01', title: '这个月房租', tone: 'rent',
-      background: '房东在群里发了第三次「在吗」。\n工资还有 9 天到账，房租还差 $800。\n这时你看到一条广告：\n「在家做外汇，一天赚回房租。」',
-      goalText: '净赚 $800 后收手。', limitText: '最多 5 笔交易',
-      specialText: '本合同不开放借款。', goalType: 'profit', targetProfit: 800, maxTrades: 5, noLoans: true,
+      background: '房东在群里发了第三次「在吗」。\n工资还有 9 天到账，房租还差 $500。\n这时你看到一条广告：\n「在家做外汇，一天赚回房租。」',
+      goalText: '净赚 $500 后收手。', limitText: '最多 5 笔交易',
+      specialText: '本合同不开放借款。', goalType: 'profit', targetProfit: 500, maxTrades: 5, noLoans: true,
       coachTargetProfit: 100, coachGoalText: '净赚 $100 后收手。',
       events: [
         {
@@ -375,8 +375,8 @@
     {
       id: 'debt', kicker: 'CONTRACT 02', title: '还清肥鱼信贷', tone: 'debt',
       background: '你已经在肥鱼信贷借了 $3,000。\n今天不还，明天利息翻倍。\n你看了看账户里最后 $10,000，\n决定「翻本就走」。',
-      goalText: '还清 $3,000 贷款，并让权益达到 $8,000。', limitText: '最多 10 笔交易',
-      specialText: '初始负债 $3,000；不开放新增借款。', goalType: 'debt', startDebt: 3000, targetEquity: 8000, maxTrades: 10, noLoans: true,
+      goalText: '还清 $3,000 贷款，并让权益达到 $7,500。', limitText: '最多 10 笔交易',
+      specialText: '初始负债 $3,000；不开放新增借款。', goalType: 'debt', startDebt: 3000, targetEquity: 7500, maxTrades: 10, noLoans: true,
       coachTargetEquity: 7200, coachGoalText: '还清 $3,000 贷款，并让权益达到 $7,200。',
       events: [
         {
@@ -407,9 +407,9 @@
     },
     {
       id: 'layoff', kicker: 'CONTRACT 03', title: '被裁员的第 30 天', tone: 'layoff',
-      background: 'HR 说「公司感谢你的贡献」。\n你算了算，赔偿金只够交两个月房租。\n招聘软件上全是已读不回。\n你决定先赚 $3,000 过渡费。\n你告诉自己：找到工作就收手。',
-      goalText: '净赚 $3,000 后收手。', limitText: '最多 8 笔交易',
-      specialText: '初始现金 $6,000；不开放借款。', goalType: 'profit', startCash: 6000, targetProfit: 3000, maxTrades: 8, noLoans: true,
+      background: 'HR 说「公司感谢你的贡献」。\n你算了算，赔偿金只够交两个月房租。\n招聘软件上全是已读不回。\n你决定先赚 $1,500 过渡费。\n你告诉自己：找到工作就收手。',
+      goalText: '净赚 $1,500 后收手。', limitText: '最多 8 笔交易',
+      specialText: '初始现金 $6,000；不开放借款。', goalType: 'profit', startCash: 6000, targetProfit: 1500, maxTrades: 8, noLoans: true,
       coachTargetProfit: 500, coachGoalText: '净赚 $500 后收手。',
       events: [
         {
@@ -432,7 +432,7 @@
           id: 'layoff-3', at: 5, act: 3, title: '前同事拉你进群',
           text: '前同事说群里有「内部消息」。\n截图很模糊，语气很确定。',
           choices: [
-            { label: '听消息', cash: 500, flag: 'listenedRumor', note: '消息费 $500，群里的截图还是很模糊。' },
+            { label: '听消息', cash: -500, flag: 'listenedRumor', note: '消息费 $500，群里的截图还是很模糊。' },
             { label: '不信', cash: 0, flag: 'ignoredRumor', note: '你退群了，世界安静了一点。' }
           ]
         },
@@ -509,6 +509,11 @@
       hint: '完成目标，并听了前同事的消息。',
       text: '群里的消息没让你发财，但让你有了一个新身份：灵活就业。'
     },
+    'layoff-fought': {
+      title: '据理力争', tone: 'neutral', group: '裁员',
+      hint: '完成目标，并在 HR 约谈时争取更多赔偿。',
+      text: '你争到了该争的，也失去了不该留的。\n赔偿金到账那天，你把这笔钱分成两半：一半生活，一半继续赌。'
+    },
     'layoff-gig': {
       title: '先干着', tone: 'neutral', group: '裁员',
       hint: '完成目标，但没准备面试。',
@@ -525,17 +530,20 @@
     {
       id: 'calm', title: '平静周', kicker: 'LOW VOLATILITY', tone: 'calm',
       desc: '新闻更少，行情更慢，目标也更低。\n适合稳着打，先把合同做完。',
-      targetMultiplier: 0.85, newsFreq: 'low', volatility: 0.8
+      targetMultiplier: 0.85, newsFreq: 'low', volatility: 0.8,
+      gradeCap: 'A', rewardText: '评级上限 A'
     },
     {
       id: 'central', title: '央行周', kicker: 'HIGH VOLATILITY', tone: 'central',
       desc: '重大事件更多，波动更大，目标也更高。\n适合敢判断、敢下注的人。',
-      targetMultiplier: 1.15, newsFreq: 'high', volatility: 1.25
+      targetMultiplier: 1.15, newsFreq: 'high', volatility: 1.25,
+      gradeBonus: 1, rewardText: '完成合同后评级 +1 档'
     },
     {
       id: 'rumor', title: '传闻周', kicker: 'RUMOR MILL', tone: 'rumor',
       desc: '整活和传闻更多，行情忽上忽下。\n目标不变，但你要自己分辨真假。',
-      targetMultiplier: 1, newsFreq: 'mid', volatility: 1.05
+      targetMultiplier: 1, newsFreq: 'mid', volatility: 1.05,
+      shopDiscount: 0.5, rewardText: '第一件商店商品半价'
     }
   ];
 
@@ -545,8 +553,8 @@
       desc: '提前知道下一条重大事件的标题。\n只告诉你可能发生什么，不告诉你涨还是跌。'
     },
     {
-      id: 'insurance', title: '止损保险', price: 200, kicker: 'INSURANCE',
-      desc: '下一次止损返还一半亏损，最多 $20。\n用一次就没了。'
+      id: 'insurance', title: '止损保险', price: 30, kicker: 'INSURANCE',
+      desc: '下一次止损返还全部亏损，最多 $50。\n用一次就没了。'
     },
     {
       id: 'extension', title: '延期一次', price: 300, kicker: 'EXTENSION',
