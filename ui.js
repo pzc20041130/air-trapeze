@@ -32,6 +32,7 @@
   let tickerKey = '';
   let contractIndex = 0;
   let pendingContractId = null;
+  let pendingShopKey = null;
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
@@ -137,6 +138,8 @@
     renderMajorAlert();
     syncMobileBar();
     renderCoachPanel();
+    maybeRestoreContractEvent();
+    maybeRestoreShop();
     drawChart();
     scheduleTermify();
   }
@@ -194,16 +197,17 @@
       const done = !!contract.complete;
       const actLabel = ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
       const actEnd = contract.actEnds ? contract.actEnds[(Number(contract.act) || 1) - 1] : null;
-      const effectiveLabel = actEnd ? ` · 有效 ${contract.actTrades || 0}/${actEnd}` : '';
-      contractChip.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}${done ? ' · 达成' : ''}`;
+      const effectiveLabel = actEnd ? `有效 ${contract.actTrades || 0}/${actEnd}` : '';
+      const heading = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}`;
+      contractChip.textContent = `${heading}${done ? ' · 达成' : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
       contractLine.className = 'contract-line' + (done ? ' done' : '');
       if (done) {
         contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel}`;
+        contractLine.textContent = `${heading}\n权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       } else {
-        contractLine.textContent = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''} · 已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel}`;
+        contractLine.textContent = `${heading}\n已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       }
     }
     const closed = !!s.runClosed;
@@ -976,7 +980,8 @@
     $('casesSummary').textContent = all.length
       ? `共 ${all.length} 份病历，当前显示 ${list.length} 份。每局收手、穿仓或挑战结算后自动建档。`
       : '还没有病历。去开一局，然后收手或让账户穿仓。';
-    const standard = all.filter(item => !item.coachMode);
+    const standard = all.filter(item => item.mode === 'sim' && !item.coachMode);
+    const coach = all.filter(item => item.mode === 'sim' && !!item.coachMode);
     const rank = { D: 0, C: 1, B: 2, A: 3, S: 4 };
     const best = standard.reduce((current, item) => (rank[item.grade] ?? -1) > (rank[current] ?? -1) ? item.grade : current, null);
     const sCount = standard.filter(item => item.grade === 'S').length;
@@ -984,7 +989,7 @@
     const styles = new Set();
     standard.forEach(item => (item.playstyle || []).forEach(tag => { if (tag.id) styles.add(tag.id); }));
     $('caseStats').textContent = standard.length
-      ? `标准病历 ${standard.length} · 教练局 ${all.length - standard.length} · 最佳评级 ${best || '—'} · S ${sCount} 次 · 合同完成 ${completed} 次 · 流派 ${styles.size}/${STYLE_TOTAL}`
+      ? `标准病历 ${standard.length} · 教练局 ${coach.length} · 最佳评级 ${best || '—'} · S ${sCount} 次 · 合同完成 ${completed} 次 · 流派 ${styles.size}/${STYLE_TOTAL}`
       : '还没有标准病历。教练局不计入最佳评级和流派收集。';
     if ($('caseCount')) $('caseCount').textContent = all.length;
     [...$('casesFilter').children].forEach(btn => btn.classList.toggle('active', btn.dataset.mode === casesFilter));
@@ -1139,13 +1144,39 @@
   function openShop() {
     const contract = E.state.contract;
     if (!contract || !contract.pendingShop) return;
+    if (!$('shopModal').classList.contains('hidden')) return;
+    pendingShopKey = `${contract.id}:${contract.act}`;
     $('eventModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     renderShop();
   }
 
+  function maybeRestoreShop() {
+    const contract = E.state.contract;
+    if (!contract || !contract.pendingShop) {
+      pendingShopKey = null;
+      return;
+    }
+    if (!$('shopModal').classList.contains('hidden')) return;
+    if (modalOpen) return;
+    const key = `${contract.id}:${contract.act}`;
+    if (pendingShopKey === key) return;
+    pendingShopKey = key;
+    setTimeout(() => {
+      if (E.state.contract?.pendingShop && $('shopModal').classList.contains('hidden')) openShop();
+    }, 350);
+  }
+
+  function maybeRestoreContractEvent() {
+    const contract = E.state.contract;
+    if (!contract?.eventRestored || modalOpen) return;
+    contract.eventRestored = false;
+    if (contract.eventReady) setTimeout(() => E.maybeContractEvent(), 450);
+  }
+
   function skipShop() {
     E.skipShop();
+    pendingShopKey = null;
     $('shopModal').classList.add('hidden');
     render();
   }

@@ -385,6 +385,7 @@
       eventIndex: 0,
       eventPending: false,
       eventReady: false,
+      eventRestored: false,
       eventLog: [],
       flags: {}
     };
@@ -438,8 +439,10 @@
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
         ? { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
         : { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+      const hadEvent = !!(state.contract.eventPending || state.contract.eventReady);
       state.contract.eventPending = false;
-      state.contract.eventReady = false;
+      state.contract.eventReady = hadEvent;
+      state.contract.eventRestored = hadEvent;
       state.contract.eventLog = Array.isArray(state.contract.eventLog) ? state.contract.eventLog : [];
       state.contract.flags = state.contract.flags && typeof state.contract.flags === 'object' ? state.contract.flags : {};
     }
@@ -863,7 +866,7 @@
       localStorage.setItem(CASES_KEY, JSON.stringify(cases.slice(0, 30)));
       if (!summary.coachMode && summary.grade === 'S') unlock('grade-s');
       const styles = new Set();
-      cases.filter(item => !item.coachMode).forEach(item => {
+      cases.filter(item => item.mode === 'sim' && !item.coachMode).forEach(item => {
         (item.playstyle || []).forEach(tag => { if (tag.id) styles.add(tag.id); });
       });
       if (styles.size >= 5) unlock('style-collector');
