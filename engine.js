@@ -177,7 +177,7 @@
       const nextAct = Math.min(3, act + 1);
       if (nextAct > act && act < 3 && !settings.coachMode) {
         contract.pendingShop = true;
-        contract.playstyle = contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+        contract.playstyle = contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
         contract.playstyle.shopVisits += 1;
       }
       contract.act = nextAct;
@@ -198,9 +198,50 @@
   function shopPrice(item) {
     const contract = state.contract;
     if (!item) return 0;
+    let price = Number(item.price) || 0;
+    const tags = playstyleTags().map(tag => tag.id);
+    if (item.id === 'intel') {
+      price -= Math.min(75, (Number(contract?.newsPoints) || 0) * 25);
+      if (tags.includes('news')) price -= 25;
+    }
+    if (item.id === 'insurance' && tags.includes('stop')) price = Math.round(price * 0.5);
     const discount = contract?.environment?.shopDiscount;
-    if (discount && !contract.shopDiscountUsed) return Math.max(1, Math.round(Number(item.price) * discount));
-    return Number(item.price) || 0;
+    if (discount && !contract.shopDiscountUsed) price = Math.round(price * discount);
+    return Math.max(5, Math.round(price));
+  }
+
+  function shopPerks() {
+    const contract = state.contract;
+    const tags = playstyleTags().map(tag => tag.id);
+    const perks = [];
+    const points = Math.max(0, Number(contract?.newsPoints) || 0);
+    if (points > 0) perks.push(`新闻积分 ${points}：情报 -$${Math.min(75, points * 25)}`);
+    if (tags.includes('news')) perks.push('消息猎手：情报再 -$25');
+    if (tags.includes('stop')) perks.push('止损机器：保险 -50%');
+    if (tags.includes('frugal')) perks.push('铁公鸡：跳过商店返还 $20');
+    return perks;
+  }
+
+  function judgeNews(eventId, direction) {
+    if (!isContractActive() || state.runClosed || settings.coachMode) return { ok: false, message: '新手模式不参与新闻解读。' };
+    const event = activeSimNews.find(item => item.id === eventId);
+    if (!event) return { ok: false, message: '这条新闻已经过去了。' };
+    if (event.judged) return { ok: false, message: '这条新闻已经解读过了。' };
+    const bias = Number(event.bias?.[state.pair]) || 0;
+    const dir = Math.sign(Number(direction));
+    if (!bias || !dir) return { ok: false, message: '这条新闻对当前货币对没有明确方向。' };
+    const correct = Math.sign(bias) === dir;
+    event.judged = { direction: dir, correct };
+    const style = state.contract.playstyle = state.contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+    if (correct) {
+      state.contract.newsPoints = (Number(state.contract.newsPoints) || 0) + 1;
+      style.newsReads = (Number(style.newsReads) || 0) + 1;
+    } else {
+      style.newsMisses = (Number(style.newsMisses) || 0) + 1;
+    }
+    save();
+    emit();
+    return { ok: true, correct, points: state.contract.newsPoints };
   }
 
   function buyShopItem(itemId) {
@@ -232,7 +273,7 @@
     contract.pendingShop = false;
     contract.shopPurchased = item.id;
     if (contract.environment?.shopDiscount && !contract.shopDiscountUsed) contract.shopDiscountUsed = true;
-    contract.playstyle = contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+    contract.playstyle = contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
     contract.playstyle.shopBuys += 1;
     save();
     emit();
@@ -242,17 +283,23 @@
   function skipShop() {
     const contract = state.contract;
     if (!contract || !contract.pendingShop) return false;
+    let bonus = 0;
+    if (playstyleTags().some(tag => tag.id === 'frugal')) {
+      bonus = 20;
+      state.cash += bonus;
+      contract.skipBonus = (Number(contract.skipBonus) || 0) + bonus;
+    }
     contract.pendingShop = false;
     save();
     emit();
-    return true;
+    return { ok: true, bonus };
   }
 
   function playstyleTags() {
     if (!isContractActive() || settings.coachMode) return [];
     const style = state.contract.playstyle || {};
     const tags = [];
-    if (style.newsTrades >= 2) tags.push({ id: 'news', label: '消息猎手', desc: '两次在重大事件里开仓' });
+    if (style.newsTrades >= 2 || style.newsReads >= 2) tags.push({ id: 'news', label: '消息猎手', desc: '两次在重大事件里开仓或读对新闻' });
     if (style.stopCount >= 2) tags.push({ id: 'stop', label: '止损机器', desc: '两次让系统替你止损' });
     if (style.allIn >= 1) tags.push({ id: 'allin', label: '满仓赌徒', desc: '单笔押上半个账户' });
     if (style.longHolds >= 1) tags.push({ id: 'hold', label: '扛单王', desc: '有一笔扛了 10 根 K 线' });
@@ -383,7 +430,8 @@
       shopPurchased: null,
       shopDiscountUsed: false,
       giftIncome: 0,
-      playstyle: { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
+      newsPoints: 0,
+      playstyle: { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
       eventIndex: 0,
@@ -440,9 +488,10 @@
       state.contract.shopPurchased = state.contract.shopPurchased || null;
       state.contract.shopDiscountUsed = !!state.contract.shopDiscountUsed;
       state.contract.giftIncome = Math.max(0, Number(state.contract.giftIncome) || 0);
+      state.contract.newsPoints = Math.max(0, Math.floor(Number(state.contract.newsPoints) || 0));
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
-        ? { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
-        : { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+        ? { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
+        : { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
       const hadEvent = !!(state.contract.eventPending || state.contract.eventReady);
       state.contract.eventPending = false;
       state.contract.eventReady = hadEvent;
@@ -671,7 +720,7 @@
     state.feesPaid = (state.feesPaid || 0) + fee;
     if (isContractActive()) {
       const c = state.contract;
-      c.playstyle = c.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+      c.playstyle = c.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
       c.playstyle.trades = (c.playstyle.trades || 0) + 1;
       if (majorActive) c.playstyle.newsTrades += 1;
       if (margin >= Math.max(1, cashBefore) * 0.5) c.playstyle.allIn += 1;
@@ -730,7 +779,7 @@
     }
     state.positions.splice(index, 1);
     if (isContractActive()) {
-      const style = state.contract.playstyle = state.contract.playstyle || { newsTrades: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
+      const style = state.contract.playstyle = state.contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
       if (meta.trigger === 'stop') style.stopCount += 1;
       if (liquidated) style.blowups += 1;
       if (Number.isFinite(pos.openedTick) && simTickCount - pos.openedTick >= 10) style.longHolds += 1;
@@ -1983,6 +2032,8 @@
     maybeContractEvent,
     buyShopItem,
     shopPrice,
+    shopPerks,
+    judgeNews,
     skipShop,
     resolveContractEvent,
     setDifficulty,

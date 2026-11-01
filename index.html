@@ -142,6 +142,16 @@
         <aside class="right-column">
           <section class="panel order-panel">
             <div class="panel-heading"><div><span class="section-kicker">NEW ORDER</span><h2>手痒了？</h2></div><span class="order-decoration" aria-hidden="true">✿</span></div>
+            <div id="newsPrompt" class="news-prompt hidden">
+              <div class="news-prompt-head"><span>NEWS READ</span><small id="newsPointsLabel"></small></div>
+              <strong id="newsPromptTitle"></strong>
+              <p id="newsPromptMeta"></p>
+              <div id="newsPromptActions" class="news-prompt-actions">
+                <button type="button" data-news-dir="1">看涨</button>
+                <button type="button" data-news-dir="-1">看跌</button>
+              </div>
+              <p id="newsPromptResult" class="news-prompt-result hidden"></p>
+            </div>
             <div id="coachOrder" class="coach-order hidden">
               <div class="coach-head"><span>新手模式</span><button id="coachExit" class="text-button" type="button">切回完整界面</button></div>
               <div class="coach-price-row"><span id="coachPair">EUR / USD</span><strong id="coachPrice">—</strong></div>
@@ -463,6 +473,7 @@
       <h2 id="shopTitle">幕间 · 情报商店</h2>
       <p class="contract-intro">下一幕开始前，可以把现金换成情报、保险或一次延期。买了会少一点本金，自己权衡。</p>
       <div id="shopCash" class="shop-cash"></div>
+      <p id="shopPerks" class="shop-perks"></p>
       <div id="shopList" class="shop-list"></div>
       <button id="shopSkip" class="text-button shop-skip" type="button">什么都不买，进入下一幕</button>
     </div>

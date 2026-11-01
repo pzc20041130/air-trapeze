@@ -137,6 +137,7 @@
     renderActiveEvents();
     renderMajorAlert();
     syncMobileBar();
+    renderNewsPrompt();
     renderCoachPanel();
     maybeRestoreContractEvent();
     maybeRestoreShop();
@@ -305,6 +306,40 @@
     $('coachLong').disabled = blocked;
     $('coachShort').disabled = blocked;
     $('coachClose').disabled = !!s.runClosed;
+  }
+
+  function renderNewsPrompt() {
+    const box = $('newsPrompt');
+    const active = E.state.mode === 'sim' && !E.settings.coachMode && E.state.contract && !E.state.runClosed;
+    if (!active) {
+      box.classList.add('hidden');
+      return;
+    }
+    const events = (E.activeNews || []).filter(event => Number(event.bias?.[E.state.pair]));
+    const event = events[events.length - 1];
+    if (!event) {
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.dataset.eventId = event.id;
+    $('newsPointsLabel').textContent = `新闻积分 ${E.state.contract.newsPoints || 0}`;
+    $('newsPromptTitle').textContent = event.title || '';
+    $('newsPromptMeta').textContent = `${E.state.pair} · 你觉得这条新闻会让它涨还是跌？`;
+    const actions = $('newsPromptActions');
+    const result = $('newsPromptResult');
+    if (event.judged) {
+      actions.classList.add('hidden');
+      result.classList.remove('hidden');
+      result.className = 'news-prompt-result' + (event.judged.correct ? '' : ' miss');
+      result.textContent = event.judged.correct
+        ? `解读正确 · 新闻积分 +1`
+        : `误读 · 没有积分`;
+    } else {
+      actions.classList.remove('hidden');
+      result.classList.add('hidden');
+      result.textContent = '';
+    }
   }
 
   function renderOrder() {    const s = E.state;
@@ -1177,16 +1212,19 @@
   }
 
   function skipShop() {
-    E.skipShop();
+    const result = E.skipShop();
     pendingShopKey = null;
     $('shopModal').classList.add('hidden');
     render();
+    if (result?.bonus) toast(`铁公鸡：跳过商店，返还 ${D.money(result.bonus)}。`);
   }
 
   function renderShop() {
     const contract = E.state.contract;
     const cash = E.state.cash;
     $('shopCash').textContent = `可用现金 ${D.money(cash)}`;
+    const perks = E.shopPerks();
+    $('shopPerks').textContent = perks.length ? `本局折扣：${perks.join(' · ')}` : '本局还没有形成流派折扣。';
     const root = $('shopList');
     root.replaceChildren();
     (D.SHOP_ITEMS || []).forEach(item => {
@@ -1686,6 +1724,18 @@
     };
     $('longBtn').addEventListener('click', () => submitOrder(1));
     $('shortBtn').addEventListener('click', () => submitOrder(-1));
+    $('newsPrompt').addEventListener('click', event => {
+      const button = event.target.closest('button[data-news-dir]');
+      if (!button) return;
+      const eventId = $('newsPrompt').dataset.eventId;
+      const result = E.judgeNews(eventId, Number(button.dataset.newsDir));
+      if (!result.ok) {
+        toast(result.message || '这条新闻没有明确方向。');
+        return;
+      }
+      render();
+      toast(result.correct ? '解读正确：新闻积分 +1。' : '误读。至少你没把命押上去。');
+    });
     $('coachLong').addEventListener('click', () => submitCoachOrder(1));
     $('coachShort').addEventListener('click', () => submitCoachOrder(-1));
     $('coachClose').addEventListener('click', () => {

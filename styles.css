@@ -577,6 +577,20 @@ html[data-theme="night"] .trade-button.short { background: linear-gradient(150de
 .profit-cheatsheet .text-button { font-size: 8.5px; padding: 3px 4px; color: var(--accent-deep); }
 
 .coach-order { display: none; }
+.news-prompt { margin: 2px 0 14px; padding: 10px 11px; border-radius: 10px; border: 1px solid #cfe0d8; background: var(--tint-green); }
+.news-prompt-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.news-prompt-head span { font-size: 8.5px; font-weight: 900; letter-spacing: 0.12em; color: var(--accent-deep); }
+.news-prompt-head small { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); }
+.news-prompt > strong { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--text-deep); }
+.news-prompt > p { margin-top: 4px; font-size: 9.5px; line-height: 1.55; color: var(--text-muted); }
+.news-prompt-actions { display: flex; gap: 6px; margin-top: 8px; }
+.news-prompt-actions button { flex: 1; border: 0; border-radius: 7px; padding: 7px; font-size: 10px; font-weight: 900; background: var(--surface); color: var(--text-deep); }
+.news-prompt-actions button:first-child { color: var(--green-text); }
+.news-prompt-actions button:last-child { color: var(--short-text); }
+.news-prompt-actions button:disabled { opacity: 0.4; }
+.news-prompt-result { color: var(--accent-deep) !important; font-weight: 800; }
+.news-prompt-result.miss { color: var(--short-text) !important; }
+body.coach-mode .news-prompt { display: none !important; }
 body.coach-mode .coach-order { display: block; }
 body.coach-mode .order-panel .order-pair,
 body.coach-mode .order-panel .compact-fields,
@@ -1091,6 +1105,7 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 .environment-card button:hover { background: var(--tint-green); }
 .shop-modal { width: min(760px, 94vw); }
 .shop-cash { margin-top: 13px; font-family: var(--font-mono); font-size: 11px; color: var(--accent-deep); }
+.shop-perks { margin-top: 5px; font-size: 9.5px; line-height: 1.55; color: var(--text-muted); }
 .shop-list { margin-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .shop-card { display: flex; flex-direction: column; gap: 7px; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-tint); }
 .shop-card h3 { font-size: 14px; color: var(--text-deep); }
