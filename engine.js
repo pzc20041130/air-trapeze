@@ -336,6 +336,10 @@
       if (baseConfig.coachTargetProfit != null) config.targetProfit = baseConfig.coachTargetProfit;
       if (baseConfig.coachTargetEquity != null) config.targetEquity = baseConfig.coachTargetEquity;
       if (baseConfig.coachGoalText) config.goalText = baseConfig.coachGoalText;
+    } else {
+      if (baseConfig.hardTargetProfit != null) config.targetProfit = baseConfig.hardTargetProfit;
+      if (baseConfig.hardTargetEquity != null) config.targetEquity = baseConfig.hardTargetEquity;
+      if (baseConfig.hardGoalText) config.goalText = baseConfig.hardGoalText;
     }
     state.cash = Number(config.startCash) || 10000;
     state.debt = 0;

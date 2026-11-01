@@ -989,8 +989,8 @@
     const styles = new Set();
     standard.forEach(item => (item.playstyle || []).forEach(tag => { if (tag.id) styles.add(tag.id); }));
     $('caseStats').textContent = standard.length
-      ? `标准病历 ${standard.length} · 教练局 ${coach.length} · 最佳评级 ${best || '—'} · S ${sCount} 次 · 合同完成 ${completed} 次 · 流派 ${styles.size}/${STYLE_TOTAL}`
-      : '还没有标准病历。教练局不计入最佳评级和流派收集。';
+      ? `困难病历 ${standard.length} · 新手局 ${coach.length} · 最佳评级 ${best || '—'} · S ${sCount} 次 · 合同完成 ${completed} 次 · 流派 ${styles.size}/${STYLE_TOTAL}`
+      : '还没有困难病历。新手局不计入最佳评级和流派收集。';
     if ($('caseCount')) $('caseCount').textContent = all.length;
     [...$('casesFilter').children].forEach(btn => btn.classList.toggle('active', btn.dataset.mode === casesFilter));
     $('casesClear').disabled = all.length === 0;
@@ -1011,7 +1011,7 @@
       card.tabIndex = 0;
       card.innerHTML = `<div class="case-top"><span>${formatCaseDate(item.date)}</span><span class="case-badge ${item.reason || 'cashout'}">${reason}</span></div>
         <div class="case-title"><span>${mode} · ${safety}</span><em class="${item.equity >= 0 ? 'positive' : 'negative'}">${D.money(item.equity)}</em></div>
-        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.coachMode ? ' · 教练局' : ''}${item.playstyle?.length ? ` · 流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
+        <div class="case-meta">峰值 ${D.money(item.peak)} · 回撤 ${D.money(item.drawdown)} · 诊断：${item.diagnosis || '未记录'}${item.contractTitle ? ` · ${item.contractTitle}${item.contractDone ? ' ✓' : ''}` : ''}${item.environmentTitle ? ` · 环境：${item.environmentTitle}` : ''}${item.coachMode ? ' · 新手局' : ''}${item.playstyle?.length ? ` · 流派：${item.playstyle.map(tag => tag.label).join(' / ')}` : ''}${item.endingTitle ? ` · 结局：${item.endingTitle}` : ''}</div>
         <div class="case-detail"></div>`;
       const eventLines = (item.events || []).map(event => {
         const effects = [];
@@ -1112,7 +1112,9 @@
     if (!contracts.length) return;
     contractIndex = Math.max(0, Math.min(contracts.length - 1, contractIndex));
     const item = contracts[contractIndex];
-    const goalText = E.settings.coachMode && item.coachGoalText ? item.coachGoalText : item.goalText;
+    const goalText = E.settings.coachMode
+      ? (item.coachGoalText || item.goalText)
+      : (item.hardGoalText || item.goalText);
     const card = document.createElement('div');
     card.className = `contract-card ${item.tone || ''}`;
     card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
@@ -1249,10 +1251,11 @@
     (D.ENVIRONMENTS || []).forEach(env => {
       let targetText = '';
       if (base.goalType === 'profit') {
-        targetText = `目标：净赚 ${D.money(Math.round((base.targetProfit || 0) * env.targetMultiplier))}`;
+        const baseTarget = base.hardTargetProfit ?? base.targetProfit ?? 0;
+        targetText = `目标：净赚 ${D.money(Math.round(baseTarget * env.targetMultiplier))}`;
       } else if (base.goalType === 'debt') {
         const startEquity = 10000 - (base.startDebt || 0);
-        const target = Math.round(startEquity + ((base.targetEquity || startEquity) - startEquity) * env.targetMultiplier);
+        const target = Math.round(startEquity + ((base.hardTargetEquity ?? base.targetEquity ?? startEquity) - startEquity) * env.targetMultiplier);
         targetText = `目标：权益 ${D.money(target)}`;
       }
       const card = document.createElement('div');
@@ -1536,12 +1539,16 @@
     const s = E.settings;
     $('nicknameInput').value = s.nickname || '大肥鱼';
     $('advancedToggle').checked = !!s.advancedTrading;
-    $('coachToggle').checked = !!s.coachMode;
     const settingsLocked = coachLocked();
-    $('coachToggle').disabled = settingsLocked;
+    [...$('gameModeSeg').children].forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.gameMode === (s.coachMode ? 'novice' : 'hard'));
+      btn.disabled = settingsLocked;
+    });
     $('coachSettingHint').textContent = settingsLocked
       ? '合同进行中已锁定；收手或结束后再切换'
-      : '只保留涨/跌，自动押 $100、5×，自动止损止盈';
+      : s.coachMode
+        ? '新手模式：只看涨/跌，固定 $100/5×，目标更低，跳过环境/商店'
+        : '困难模式：完整下单、环境、三幕、商店，合同目标更高';
     $('sfxToggle').checked = s.sfxOn;
     $('sfxVolume').value = s.sfxVol;
     $('musicToggle').checked = s.musicOn;
@@ -1899,15 +1906,18 @@
       renderOrder();
       toast(event.target.checked ? '进阶交易已开启：下单时可以填止损/止盈。' : '进阶交易已关闭。');
     });
-    $('coachToggle').addEventListener('change', event => {
+    $('gameModeSeg').addEventListener('click', event => {
+      const btn = event.target.closest('button[data-game-mode]');
+      if (!btn) return;
       if (coachLocked()) {
-        event.target.checked = !!E.settings.coachMode;
-        toast('合同进行中，教练模式已锁定。');
+        toast('合同进行中，难度模式已锁定；收手或结束后再切换。');
         return;
       }
-      E.saveSettings({ coachMode: event.target.checked });
+      const novice = btn.dataset.gameMode === 'novice';
+      E.saveSettings({ coachMode: novice });
       render();
-      toast(event.target.checked ? '教练模式已开启：只保留涨/跌。' : '已切回完整界面。');
+      renderSettingsControls();
+      toast(novice ? '已切换到新手模式。' : '已切换到困难模式。');
     });
     $('sfxToggle').addEventListener('change', event => {
       E.saveSettings({ sfxOn: event.target.checked });

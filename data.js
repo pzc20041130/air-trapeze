@@ -274,8 +274,8 @@
     { id: 'freefall', name: '自由落体', desc: '账户权益比初始资金少了 $100,000。', hint: '权益比 $10,000 低十万' },
     { id: 'retire', name: '金盆洗手', desc: '完成一次每日挑战并结算成绩。', hint: '开始并结束一次挑战' },
     { id: 'last-word', name: '最后一次', desc: '第 10 次按下「最后一把，回本就走」。', hint: '把「最后一次」按满十次' },
-    { id: 'grade-s', name: 'S 级事故', desc: '在标准模式拿到一次合同 S 评级。', hint: '完成合同，少交易、低回撤' },
-    { id: 'style-collector', name: '流派收集者', desc: '在病历里集齐 5 种不同的本局流派。', hint: '换几种打法完成标准合同' }
+    { id: 'grade-s', name: 'S 级事故', desc: '在困难模式拿到一次合同 S 评级。', hint: '完成合同，少交易、低回撤' },
+    { id: 'style-collector', name: '流派收集者', desc: '在病历里集齐 5 种不同的本局流派。', hint: '换几种打法完成困难合同' }
   ];
 
   const LOAN_MAX = 200000;
@@ -347,6 +347,7 @@
       goalText: '净赚 $500 后收手。', limitText: '最多 5 笔交易',
       specialText: '本合同不开放借款。', goalType: 'profit', targetProfit: 500, maxTrades: 5, noLoans: true,
       coachTargetProfit: 100, coachGoalText: '净赚 $100 后收手。',
+      hardTargetProfit: 800, hardGoalText: '净赚 $800 后收手。',
       events: [
         {
           id: 'rent-1', at: 1, act: 1, title: '房东第三次「在吗」',
@@ -380,6 +381,7 @@
       goalText: '还清 $3,000 贷款，并让权益达到 $7,500。', limitText: '最多 10 笔交易',
       specialText: '初始负债 $3,000；不开放新增借款。', goalType: 'debt', startDebt: 3000, targetEquity: 7500, maxTrades: 10, noLoans: true,
       coachTargetEquity: 7200, coachGoalText: '还清 $3,000 贷款，并让权益达到 $7,200。',
+      hardTargetEquity: 8000, hardGoalText: '还清 $3,000 贷款，并让权益达到 $8,000。',
       events: [
         {
           id: 'debt-1', at: 2, act: 1, title: '最后提醒',
@@ -413,6 +415,7 @@
       goalText: '净赚 $1,500 后收手。', limitText: '最多 8 笔交易',
       specialText: '初始现金 $6,000；不开放借款。', goalType: 'profit', startCash: 6000, targetProfit: 1500, maxTrades: 8, noLoans: true,
       coachTargetProfit: 200, coachGoalText: '净赚 $200 后收手。',
+      hardTargetProfit: 3000, hardGoalText: '净赚 $3,000 后收手。',
       events: [
         {
           id: 'layoff-1', at: 1, act: 1, title: 'HR 约谈',

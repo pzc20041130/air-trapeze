@@ -143,7 +143,7 @@
           <section class="panel order-panel">
             <div class="panel-heading"><div><span class="section-kicker">NEW ORDER</span><h2>手痒了？</h2></div><span class="order-decoration" aria-hidden="true">✿</span></div>
             <div id="coachOrder" class="coach-order hidden">
-              <div class="coach-head"><span>教练模式</span><button id="coachExit" class="text-button" type="button">切回完整界面</button></div>
+              <div class="coach-head"><span>新手模式</span><button id="coachExit" class="text-button" type="button">切回完整界面</button></div>
               <div class="coach-price-row"><span id="coachPair">EUR / USD</span><strong id="coachPrice">—</strong></div>
               <p id="coachQuestion" class="coach-question">你觉得接下来会？</p>
               <div class="coach-actions">
@@ -313,7 +313,7 @@
         <div class="settings-row"><div class="settings-label">音乐音量</div><input id="musicVolume" class="vol-slider" type="range" min="0" max="100" step="1"></div>
         <div class="settings-row settings-col"><div class="settings-label">导入本地音乐<small id="musicStatus">尚未导入音乐（音频仅保存在本机浏览器）</small></div><div class="music-actions"><label class="outline-button music-file-btn" for="musicFile">选择文件<input id="musicFile" type="file" accept="audio/*"></label><button id="musicPreviewBtn" class="outline-button" type="button">试听</button><button id="musicClearBtn" class="outline-button" type="button">清除</button></div></div>
         <hr class="settings-divider">
-        <div class="settings-row"><div class="settings-label">教练模式<small id="coachSettingHint">只保留涨/跌，自动押 $100、5×，自动止损止盈</small></div><label class="switch"><input id="coachToggle" type="checkbox"><span class="slider"></span></label></div>
+        <div class="settings-row"><div class="settings-label">难度模式<small id="coachSettingHint">新手模式：只看涨/跌，固定 $100/5×，目标更低</small></div><div class="seg-mini" id="gameModeSeg" role="group" aria-label="新手或困难模式"><button type="button" data-game-mode="novice">新手模式</button><button type="button" data-game-mode="hard">困难模式</button></div></div>
         <div class="settings-row"><div class="settings-label">市场新闻<small>跑马灯与滑入快讯，关闭后不再生成模拟新闻</small></div><label class="switch"><input id="newsToggle" type="checkbox"><span class="slider"></span></label></div>
         <div class="settings-row"><div class="settings-label">新闻频率</div><div class="seg-mini" id="newsFreqSeg" role="group" aria-label="新闻频率"><button type="button" data-freq="low">低</button><button type="button" data-freq="mid">中</button><button type="button" data-freq="high">高</button></div></div>
         <hr class="settings-divider">
