@@ -198,7 +198,8 @@
       const done = !!contract.complete;
       const actLabel = ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
       const actEnd = contract.actEnds ? contract.actEnds[(Number(contract.act) || 1) - 1] : null;
-      const effectiveLabel = actEnd ? `有效 ${contract.actTrades || 0}/${actEnd}` : '';
+      const hard = s.mode === 'sim' && !E.settings.coachMode;
+      const effectiveLabel = actEnd ? `${hard ? '有效成交' : '有效'} ${contract.actTrades || 0}/${actEnd}` : '';
       const heading = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}`;
       contractChip.textContent = `${heading}${done ? ' · 达成' : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
@@ -206,9 +207,9 @@
       if (done) {
         contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${heading}\n权益 ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
+        contractLine.textContent = `${heading}\n${hard ? '有效权益' : '权益'} ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · ${hard ? '成交' : '交易'} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       } else {
-        contractLine.textContent = `${heading}\n已赚 ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · 还差 ${D.money(contract.remaining)} · 交易 ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
+        contractLine.textContent = `${heading}\n${hard ? '合同盈亏' : '已赚'} ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · ${hard ? '目标缺口' : '还差'} ${D.money(contract.remaining)} · ${hard ? '成交' : '交易'} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       }
     }
     const closed = !!s.runClosed;
@@ -275,7 +276,9 @@
   function renderCoachPanel() {
     const active = coachActive();
     const locked = coachLocked();
+    const hard = E.state.mode === 'sim' && !E.settings.coachMode;
     document.body.classList.toggle('coach-mode', active);
+    document.body.classList.toggle('hard-mode', hard);
     $('coachOrder').classList.toggle('hidden', !active);
     if (!active) return;
     $('coachExit').disabled = locked;
@@ -325,7 +328,7 @@
     box.dataset.eventId = event.id;
     $('newsPointsLabel').textContent = `新闻积分 ${E.state.contract.newsPoints || 0}`;
     $('newsPromptTitle').textContent = event.title || '';
-    $('newsPromptMeta').textContent = `${E.state.pair} · 你觉得这条新闻会让它涨还是跌？`;
+    $('newsPromptMeta').textContent = `${E.state.pair} · 方向判断：利多还是利空？`;
     const actions = $('newsPromptActions');
     const result = $('newsPromptResult');
     if (event.judged) {
@@ -333,8 +336,8 @@
       result.classList.remove('hidden');
       result.className = 'news-prompt-result' + (event.judged.correct ? '' : ' miss');
       result.textContent = event.judged.correct
-        ? `解读正确 · 新闻积分 +1`
-        : `误读 · 没有积分`;
+        ? `方向判断正确 · 新闻积分 +1`
+        : `方向判断错误 · 没有积分`;
     } else {
       actions.classList.remove('hidden');
       result.classList.add('hidden');
@@ -1253,6 +1256,7 @@
   }
 
   function startSelectedContract(id, environmentId = null) {
+    if (!E.settings.coachMode) E.saveSettings({ advancedTrading: true });
     if (!E.startContract(id, environmentId)) {
       toast('现在不能签合同：请先结束当前这一局。');
       return false;
@@ -1358,6 +1362,9 @@
     $('eventKicker').textContent = `${actLabel} · ${contractTitle} · CONTRACT EVENT`;
     $('eventTitle').textContent = event.title;
     $('eventText').textContent = event.text;
+    $('eventGiftHint').textContent = E.settings.coachMode
+      ? '事件带来的生活费不计入合同进度；支出照算。'
+      : '外部现金流不计入合同 P&L；合同支出照常计入。';
     const root = $('eventChoices');
     root.replaceChildren();
     (event.choices || []).forEach((choice, index) => {
@@ -1964,10 +1971,10 @@
         return;
       }
       const novice = btn.dataset.gameMode === 'novice';
-      E.saveSettings({ coachMode: novice });
+      E.saveSettings({ coachMode: novice, advancedTrading: !novice });
       render();
       renderSettingsControls();
-      toast(novice ? '已切换到新手模式。' : '已切换到困难模式。');
+      toast(novice ? '已切换到新手模式。' : '已切换到困难模式：完整下单与专业术语。');
     });
     $('sfxToggle').addEventListener('change', event => {
       E.saveSettings({ sfxOn: event.target.checked });

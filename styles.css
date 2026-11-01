@@ -607,6 +607,8 @@ body.coach-mode .positions-panel,
 body.coach-mode .loan-panel { display: none !important; }
 body.coach-mode .mobile-trade-bar { display: none !important; }
 body.coach-mode { padding-bottom: 0 !important; }
+body.hard-mode .profit-cheatsheet,
+body.hard-mode #practiceHint { display: none !important; }
 .coach-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
 .coach-head > span { font-size: 9px; letter-spacing: 0.12em; font-weight: 900; color: var(--accent-deep); }
 .coach-head .text-button { font-size: 9px; padding: 2px 0; color: var(--text-dim); }
