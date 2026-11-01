@@ -1,0 +1,23 @@
+{
+  "name": "空中飞人 · 上头观察室",
+  "short_name": "空中飞人",
+  "description": "黑色喜剧式外汇模拟交易游戏",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eff5f2",
+  "theme_color": "#6fbf9a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "./assets/icon.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

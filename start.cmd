@@ -2,9 +2,21 @@
 setlocal
 cd /d "%~dp0"
 
+set "BROWSER="
+for %%P in (
+  "%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+  "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+  "%LocalAppData%\Google\Chrome\Application\chrome.exe"
+  "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+  "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+  "%LocalAppData%\Microsoft\Edge\Application\msedge.exe"
+) do (
+  if not defined BROWSER if exist "%%~P" set "BROWSER=%%~P"
+)
+
 powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8130 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if not errorlevel 1 (
-  start "" "http://127.0.0.1:8130/"
+  call :open_app
   exit /b 0
 )
 
@@ -19,7 +31,7 @@ if errorlevel 1 (
   )
   start "" /min cmd /c "python -m http.server 8130 --bind 127.0.0.1"
   timeout /t 2 >nul
-  start "" "http://127.0.0.1:8130/"
+  call :open_app
   exit /b 0
 )
 
@@ -30,5 +42,13 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-start "" "http://127.0.0.1:8130/"
+call :open_app
+exit /b 0
+
+:open_app
+if defined BROWSER (
+  start "" "%BROWSER%" --app=http://127.0.0.1:8130/ --new-window --no-first-run --no-default-browser-check --window-size=1440,960
+) else (
+  start "" "http://127.0.0.1:8130/"
+)
 exit /b 0
