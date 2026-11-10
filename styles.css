@@ -592,6 +592,24 @@ html[data-theme="night"] .trade-button.short { background: linear-gradient(150de
 .news-prompt-result.miss { color: var(--short-text) !important; }
 body.coach-mode .news-prompt { display: none !important; }
 .card-inventory { margin: -4px 0 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--accent-deep); }
+.strategy-bar { margin: -4px 0 12px; padding: 7px 9px; border-radius: 8px; background: var(--surface-tint); border: 1px solid var(--border-soft); font-size: 9.5px; line-height: 1.5; color: var(--text-muted); }
+.strategy-start-list { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.strategy-start-card, .strategy-offer { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 12px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface-tint); color: var(--text-deep); }
+.strategy-start-card > span, .strategy-offer > span { font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: var(--accent-deep); }
+.strategy-start-card strong, .strategy-offer strong { font-size: 14px; }
+.strategy-start-card small, .strategy-offer small { flex: 1; font-size: 9.5px; line-height: 1.55; color: var(--text-muted); white-space: pre-line; }
+.strategy-start-card b, .strategy-offer b { font-family: var(--font-mono); font-size: 10px; color: var(--accent-deep); }
+.strategy-start-card:hover, .strategy-offer:hover:not(:disabled) { border-color: var(--border-panel-green); background: var(--tint-green); }
+.strategy-offer:disabled { opacity: 0.45; }
+.strategy-shop { margin-top: 15px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.strategy-shop-head { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--text-deep); }
+.strategy-shop-head span { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); }
+.strategy-shop-deck { display: flex; gap: 5px; margin-top: 7px; }
+.strategy-shop-deck span { padding: 4px 7px; border-radius: 6px; background: var(--tint-green); color: var(--green-text); font-size: 9px; }
+.strategy-shop-deck .empty { background: var(--surface-tint); color: var(--text-dim); }
+.strategy-offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
+.strategy-reroll { margin-top: 8px; font-size: 9px; padding: 0; color: var(--accent-deep); }
+.strategy-reroll:disabled { opacity: 0.4; }
 
 .emergency-backdrop {
   position: fixed; inset: 0; z-index: 300; display: grid; place-items: center;
@@ -1212,4 +1230,9 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
   .help-chip { width: 18px; height: 18px; margin-left: 5px; vertical-align: 3px; }
 }
 
+
+
+@media (max-width: 720px) {
+  .strategy-start-list, .strategy-offers { grid-template-columns: 1fr; }
+}
 

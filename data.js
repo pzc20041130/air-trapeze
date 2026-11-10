@@ -575,8 +575,43 @@
     }
   ];
 
+  const STRATEGY_CARDS = [
+    {
+      id: 'trend-follow', name: '趋势追随', style: 'trend', styleLabel: '趋势', cost: 600,
+      desc: '顺势交易手续费 -8%。\n2 张趋势：再减 10%。'
+    },
+    {
+      id: 'trend-break', name: '突破猎手', style: 'trend', styleLabel: '趋势', cost: 700,
+      desc: '顺势交易手续费 -8%。\n2 张趋势：再减 10%。'
+    },
+    {
+      id: 'news-wire', name: '快讯交易员', style: 'news', styleLabel: '消息', cost: 600,
+      desc: '新闻判断正确时，额外 +1 新闻积分。\n2 张消息：再 +1。'
+    },
+    {
+      id: 'news-macro', name: '宏观研究员', style: 'news', styleLabel: '消息', cost: 700,
+      desc: '新闻判断正确时，额外 +1 新闻积分。\n2 张消息：再 +1。'
+    },
+    {
+      id: 'contrarian-revert', name: '均值回归', style: 'contrarian', styleLabel: '逆势', cost: 600,
+      desc: '紧急事件解锁「反手」。\n2 张逆势：反手时保留更多保证金。'
+    },
+    {
+      id: 'contrarian-fade', name: '逆势猎手', style: 'contrarian', styleLabel: '逆势', cost: 700,
+      desc: '紧急事件解锁「反手」。\n2 张逆势：反手时保留更多保证金。'
+    },
+    {
+      id: 'defense-risk', name: '风险官', style: 'defense', styleLabel: '防守', cost: 600,
+      desc: '止损时返还 15% 亏损，最多 $30。\n2 张防守：再返还 10%。'
+    },
+    {
+      id: 'defense-fortress', name: '铁壁', style: 'defense', styleLabel: '防守', cost: 700,
+      desc: '止损时返还 15% 亏损，最多 $30。\n2 张防守：再返还 10%。'
+    }
+  ];
+
   window.FXData = {
-    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENVIRONMENTS, SHOP_ITEMS, ENDINGS,
+    PAIRS, BATTLES, SIM_NEWS, TUTORIAL, ACHIEVEMENTS, GLOSSARY, CONTRACTS, ENVIRONMENTS, SHOP_ITEMS, STRATEGY_CARDS, ENDINGS,
     LOAN_MAX, loanDailyRate, tradeFee,
     money, signedMoney, pct, priceText, rateText,
     CHALLENGE_BOARD_SIZE: 3,

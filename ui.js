@@ -36,6 +36,7 @@
   let emergencyTimer = null;
   let emergencyDeadline = 0;
   let emergencyEventId = null;
+  let strategyOfferCache = [];
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
@@ -142,9 +143,11 @@
     syncMobileBar();
     renderNewsPrompt();
     renderCardInventory();
+    renderStrategyBar();
     renderCoachPanel();
     maybeRestoreContractEvent();
     maybeRestoreShop();
+    if (E.state.contract?.strategyPending && !E.settings.coachMode) setTimeout(openStrategyStart, 150);
     drawChart();
     scheduleTermify();
   }
@@ -382,8 +385,10 @@
       root.append(button);
     };
     addAction('close', '平仓避险', 'danger');
+    if (E.strategyContrarianCount() > 0) addAction('reverse', '逆势反手', 'danger');
     addAction('hedge', `对冲卡 ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
-    addAction('margin', `追加保证金 ×${cards.margin || 0}`, '', !(cards.margin > 0) || E.state.cash < 100);
+    const hasDefense = E.strategyStyleCount('defense') > 0;
+    addAction('margin', hasDefense && !(cards.margin > 0) ? '追加保证金（防守）' : `追加保证金 ×${cards.margin || 0}`, '', (!(cards.margin > 0) && !hasDefense) || E.state.cash < 100);
     addAction('hold', '硬扛', 'hold');
     $('emergencyModal').classList.remove('hidden');
     emergencyDeadline = Date.now() + 10000;
@@ -403,6 +408,93 @@
     render();
     if (result?.message) toast(result.message);
     if (E.state.contract?.eventReady) setTimeout(() => E.maybeContractEvent(), 220);
+  }
+
+  function renderStrategyBar() {
+    const box = $('strategyBar');
+    const contract = E.state.contract;
+    if (!contract || contract.id === 'free' || settingsCoach()) {
+      box.classList.add('hidden');
+      return;
+    }
+    const deck = E.strategyDeckCards();
+    const slots = [0, 1, 2].map(index => deck[index]?.name || '空');
+    const styles = ['trend', 'news', 'contrarian', 'defense'].map(style => {
+      const count = E.strategyStyleCount(style);
+      return count ? `${({ trend: '趋势', news: '消息', contrarian: '逆势', defense: '防守' })[style]} ${count}` : '';
+    }).filter(Boolean);
+    box.classList.remove('hidden');
+    box.textContent = `交易台：${slots.join(' · ')}${styles.length ? `　|　${styles.join(' · ')}` : ''}`;
+  }
+
+  function settingsCoach() {
+    return !!E.settings.coachMode;
+  }
+
+  function openStrategyStart() {
+    const contract = E.state.contract;
+    if (!contract || !contract.strategyPending || E.settings.coachMode) return;
+    if (!$('strategyStartModal').classList.contains('hidden')) return;
+    const root = $('strategyStartList');
+    root.replaceChildren();
+    (contract.strategyStartOffers || []).forEach(cardId => {
+      const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
+      if (!card) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'strategy-start-card';
+      button.innerHTML = `<span>${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>选择</b>`;
+      button.addEventListener('click', () => {
+        const result = E.chooseStartingStrategy(card.id);
+        if (!result.ok) { toast(result.message || '选不了。'); return; }
+        $('strategyStartModal').classList.add('hidden');
+        render();
+        toast(`起始策略：${card.name}。`);
+      });
+      root.append(button);
+    });
+    $('strategyStartModal').classList.remove('hidden');
+  }
+
+  function renderStrategyShop() {
+    const root = $('strategyShop');
+    const contract = E.state.contract;
+    if (!contract || E.settings.coachMode) {
+      root.replaceChildren();
+      return;
+    }
+    const deck = E.strategyDeckCards();
+    const offers = (contract.strategyOffers || []).length ? contract.strategyOffers : strategyOfferCache;
+    if ((contract.strategyOffers || []).length) strategyOfferCache = contract.strategyOffers;
+    root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店</strong><span>交易台 ${deck.length}/3</span></div>
+      <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}</span>` : '<span class="empty">空槽</span>').join('')}</div>
+      <div class="strategy-offers"></div>
+      <button type="button" id="strategyReroll" class="text-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 $100</button>`;
+    const offersRoot = root.querySelector('.strategy-offers');
+    offers.forEach(cardId => {
+      const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
+      if (!card) return;
+      const price = E.strategyPrice(card);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'strategy-offer';
+      button.disabled = !!contract.strategyBought || deck.length >= 3 || E.state.cash < price;
+      button.innerHTML = `<span>${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>$${price} · 买下</b>`;
+      button.addEventListener('click', () => {
+        const result = E.buyStrategyCard(card.id);
+        if (!result.ok) { toast(result.message || '买不了。'); return; }
+        renderShop();
+        render();
+        toast(`加入交易台：${card.name}。`);
+      });
+      offersRoot.append(button);
+    });
+    root.querySelector('#strategyReroll')?.addEventListener('click', () => {
+      const result = E.rerollStrategyOffers();
+      if (!result.ok) { toast(result.message || '刷新不了。'); return; }
+      renderShop();
+      render();
+    });
   }
 
   function renderOrder() {    const s = E.state;
@@ -1246,6 +1338,7 @@
     if (!contract || !contract.pendingShop) return;
     if (!$('shopModal').classList.contains('hidden')) return;
     pendingShopKey = `${contract.id}:${contract.act}`;
+    if (!E.settings.coachMode) strategyOfferCache = E.refreshStrategyOffers();
     $('eventModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     renderShop();
@@ -1286,33 +1379,13 @@
     const contract = E.state.contract;
     const cash = E.state.cash;
     $('shopCash').textContent = `可用现金 ${D.money(cash)}`;
-    const perks = E.shopPerks();
-    $('shopPerks').textContent = perks.length ? `本局折扣：${perks.join(' · ')}` : '本局还没有形成流派折扣。';
-    const root = $('shopList');
-    root.replaceChildren();
-    (D.SHOP_ITEMS || []).forEach(item => {
-      const price = E.shopPrice(item);
-      const discounted = price < item.price;
-      const card = document.createElement('div');
-      card.className = 'shop-card';
-      card.innerHTML = `<span class="contract-kicker">${item.kicker}</span>
-        <h3>${item.title}</h3>
-        <p>${item.desc}</p>
-        <span class="shop-price">${D.money(price)}${discounted ? ` <s>${D.money(item.price)}</s>` : ''}</span>
-        <button type="button"${cash < price ? ' disabled' : ''}>${cash < price ? '现金不够' : '买下'}</button>`;
-      card.querySelector('button').addEventListener('click', () => {
-        const result = E.buyShopItem(item.id);
-        if (!result.ok) {
-          toast(result.message || '买不了。');
-          return;
-        }
-        $('shopModal').classList.add('hidden');
-        render();
-        if (item.id === 'intel' && contract.intelTitle) toast(`情报：下一条重大事件可能是「${contract.intelTitle}」。`);
-        else toast(`买下「${item.title}」。`);
-      });
-      root.append(card);
-    });
+    const points = Math.max(0, Number(contract?.newsPoints) || 0);
+    $('shopPerks').textContent = points
+      ? `新闻积分 ${points}：每点让策略卡便宜 $50（最多 -$300）。`
+      : '新闻积分可以降低策略卡价格。';
+    $('shopList').classList.add('hidden');
+    $('shopList').replaceChildren();
+    renderStrategyShop();
   }
 
   function startSelectedContract(id, environmentId = null) {
@@ -1331,6 +1404,7 @@
       ? '自由模式：没有目标，想走就走。'
       : `已签下「${item ? item.title : '合同'}」${env ? ` · ${env.title}` : ''}。`);
     render();
+    if (!E.settings.coachMode && id !== 'free') setTimeout(openStrategyStart, 120);
     return true;
   }
 

@@ -234,7 +234,7 @@
     event.judged = { direction: dir, correct };
     const style = state.contract.playstyle = state.contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
     if (correct) {
-      state.contract.newsPoints = (Number(state.contract.newsPoints) || 0) + 1;
+      state.contract.newsPoints = (Number(state.contract.newsPoints) || 0) + 1 + strategyNewsBonus();
       style.newsReads = (Number(style.newsReads) || 0) + 1;
     } else {
       style.newsMisses = (Number(style.newsMisses) || 0) + 1;
@@ -313,6 +313,105 @@
     if (style.smallTrades >= 2) tags.push({ id: 'small', label: '房租战士', desc: '两笔以上只用最小仓位' });
     if (state.lastOneCount > 0) tags.push({ id: 'last', label: '最后一把', desc: '按过「最后一次」' });
     return tags.slice(0, 3);
+  }
+
+  function strategyDeckCards() {
+    const ids = state.contract?.strategyDeck || [];
+    return ids.map(id => (D.STRATEGY_CARDS || []).find(card => card.id === id)).filter(Boolean);
+  }
+
+  function strategyStyleCount(style) {
+    return strategyDeckCards().filter(card => card.style === style).length;
+  }
+
+  function drawStrategyCards(count, exclude = []) {
+    const excluded = new Set(exclude);
+    const pool = (D.STRATEGY_CARDS || []).filter(card => !excluded.has(card.id));
+    const picked = [];
+    while (picked.length < count && pool.length) {
+      const index = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(index, 1)[0].id);
+    }
+    return picked;
+  }
+
+  function strategyPrice(card) {
+    if (!card) return 0;
+    const discount = Math.min(300, (Number(state.contract?.newsPoints) || 0) * 50);
+    return Math.max(100, Number(card.cost) - discount);
+  }
+
+  function chooseStartingStrategy(cardId) {
+    const contract = state.contract;
+    if (!contract || !contract.strategyPending) return { ok: false, message: '现在不需要选择起始策略。' };
+    if (!(contract.strategyStartOffers || []).includes(cardId)) return { ok: false, message: '这张策略不在本次选择里。' };
+    contract.strategyDeck = [cardId];
+    contract.strategyPending = false;
+    contract.strategyStartOffers = [];
+    contract.strategyOffers = [];
+    save();
+    emit();
+    return { ok: true };
+  }
+
+  function refreshStrategyOffers() {
+    const contract = state.contract;
+    if (!contract || settings.coachMode) return [];
+    contract.strategyOffers = drawStrategyCards(3, contract.strategyDeck || []);
+    contract.strategyBought = false;
+    save();
+    emit();
+    return contract.strategyOffers;
+  }
+
+  function rerollStrategyOffers() {
+    const contract = state.contract;
+    if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '现在不能刷新。' };
+    if (state.cash < 100) return { ok: false, message: '刷新需要 $100。' };
+    state.cash -= 100;
+    contract.strategyOffers = drawStrategyCards(3, contract.strategyDeck || []);
+    contract.strategyRerolls = (contract.strategyRerolls || 0) + 1;
+    save();
+    emit();
+    return { ok: true };
+  }
+
+  function buyStrategyCard(cardId) {
+    const contract = state.contract;
+    if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '本次商店已经买过策略了。' };
+    if ((contract.strategyDeck || []).length >= 3) return { ok: false, message: '交易台已满。' };
+    if ((contract.strategyOffers || []).length && !(contract.strategyOffers || []).includes(cardId)) {
+      return { ok: false, message: '这张策略不在商店里。' };
+    }
+    const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
+    const price = strategyPrice(card);
+    if (!card || state.cash < price) return { ok: false, message: '现金不够。' };
+    state.cash -= price;
+    contract.strategyDeck = [...(contract.strategyDeck || []), cardId];
+    contract.strategyBought = true;
+    save();
+    emit();
+    return { ok: true, card };
+  }
+
+  function strategyFeeDiscount() {
+    const count = strategyStyleCount('trend');
+    if (!count) return 0;
+    return Math.min(0.2, count * 0.06 + (count >= 2 ? 0.05 : 0));
+  }
+
+  function strategyNewsBonus() {
+    const count = strategyStyleCount('news');
+    return count ? count + (count >= 2 ? 1 : 0) : 0;
+  }
+
+  function strategyDefenseRate() {
+    const count = strategyStyleCount('defense');
+    return count ? Math.min(0.4, count * 0.15 + (count >= 2 ? 0.1 : 0)) : 0;
+  }
+
+  function strategyContrarianCount() {
+    return strategyStyleCount('contrarian');
   }
 
   function contractGrade() {
@@ -440,6 +539,12 @@
       cards: { hedge: 1, margin: 0 },
       emergencyCount: 0,
       emergencyActive: false,
+      strategyDeck: [],
+      strategyPending: !!(!settings.coachMode && config.id !== 'free'),
+      strategyStartOffers: [],
+      strategyOffers: [],
+      strategyBought: false,
+      strategyRerolls: 0,
       playstyle: { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
@@ -450,6 +555,9 @@
       eventLog: [],
       flags: {}
     };
+    if (!settings.coachMode && config.id !== 'free') {
+      state.contract.strategyStartOffers = drawStrategyCards(3, []);
+    }
     state.leverage = Math.min(state.leverage, maxLeverage());
     if (settings.coachMode) {
       state.margin = 100;
@@ -503,6 +611,19 @@
         : { hedge: 0, margin: 0 };
       state.contract.emergencyCount = Math.max(0, Math.min(2, Math.floor(Number(state.contract.emergencyCount) || 0)));
       state.contract.emergencyActive = false;
+      state.contract.strategyDeck = Array.isArray(state.contract.strategyDeck)
+        ? state.contract.strategyDeck.filter(id => (D.STRATEGY_CARDS || []).some(card => card.id === id)).slice(0, 3)
+        : [];
+      state.contract.strategyPending = !settings.coachMode && !state.runClosed && !state.contract.strategyDeck.length
+        ? true
+        : !!state.contract.strategyPending;
+      state.contract.strategyStartOffers = Array.isArray(state.contract.strategyStartOffers) ? state.contract.strategyStartOffers : [];
+      state.contract.strategyOffers = Array.isArray(state.contract.strategyOffers) ? state.contract.strategyOffers : [];
+      if (state.contract.strategyPending && !state.contract.strategyStartOffers.length) {
+        state.contract.strategyStartOffers = drawStrategyCards(3, state.contract.strategyDeck || []);
+      }
+      state.contract.strategyBought = !!state.contract.strategyBought;
+      state.contract.strategyRerolls = Math.max(0, Number(state.contract.strategyRerolls) || 0);
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
         ? { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
         : { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
@@ -709,6 +830,7 @@
 
   function openPosition(side, silent = false, stops = null) {
     if (state.runClosed) { toast('本局已收手，点「再来一局」重新开始。'); return null; }
+    if (isContractActive() && state.contract.strategyPending) { toast('先选择一张起始策略。'); return null; }
     if (state.mode === 'challenge' && !challenge.active) { toast('请先开始一次挑战。'); return null; }
     if (state.mode === 'challenge' && state.positions.length >= 5) { toast('挑战模式最多同时持有 5 笔仓位。'); return null; }
     if (isContractActive() && contractBlocked()) { toast('这份合同的交易次数已经用完，先收手。'); return null; }
@@ -720,7 +842,8 @@
     }
     const margin = Number(state.margin);
     if (!Number.isFinite(margin) || margin < 10) { toast('保证金至少为 $10。'); return null; }
-    const fee = D.tradeFee(margin, state.leverage);
+    let fee = D.tradeFee(margin, state.leverage);
+    if (isContractActive()) fee *= (1 - strategyFeeDiscount());
     if (margin + fee > state.cash + 0.001) { toast(`可用余额不足：保证金与手续费合计 ${D.money(margin + fee)}。`); return null; }
     const entry = currentPrice(state.pair);
     if (!Number.isFinite(entry)) { toast('行情尚未准备好，请稍后再试。'); return null; }
@@ -790,6 +913,13 @@
       state.contract.insurance = false;
       state.contract.insuranceUsed = true;
       state.contract.insuranceRelief = insuranceRelief;
+    }
+    if (isContractActive() && meta.trigger === 'stop' && pnl < 0) {
+      const relief = Math.min(30, Math.abs(pnl) * strategyDefenseRate());
+      if (relief > 0) {
+        state.cash += relief;
+        state.contract.strategyRelief = (Number(state.contract.strategyRelief) || 0) + relief;
+      }
     }
     state.positions.splice(index, 1);
     if (isContractActive()) {
@@ -1225,15 +1355,27 @@
       positions.forEach(pos => partialClose(pos.id, 0.5));
       message = '使用对冲卡，平掉一半仓位。';
     } else if (action === 'margin') {
-      if (!contract.cards || (contract.cards.margin || 0) <= 0) return { ok: false, message: '没有追加保证金卡。' };
+      const hasCard = contract.cards && (contract.cards.margin || 0) > 0;
+      const hasDefense = strategyStyleCount('defense') > 0;
+      if (!hasCard && !hasDefense) return { ok: false, message: '没有追加保证金手段。' };
       if (state.cash < 100) return { ok: false, message: '现金不足 $100。' };
       const pos = positions[0];
       if (!pos) return { ok: false, message: '没有可追加的仓位。' };
-      contract.cards.margin -= 1;
+      if (hasCard) contract.cards.margin -= 1;
       state.cash -= 100;
       pos.margin += 100;
       pos.warned = true;
-      message = '使用追加保证金卡，仓位保证金 +$100。';
+      message = hasCard ? '使用追加保证金卡，仓位保证金 +$100。' : '风险官追加保证金 $100。';
+    } else if (action === 'reverse') {
+      if (strategyContrarianCount() <= 0) return { ok: false, message: '没有逆势策略。' };
+      const pos = positions[0];
+      if (!pos) return { ok: false, message: '没有可反手的仓位。' };
+      const totalMargin = positions.reduce((sum, item) => sum + item.margin, 0);
+      const side = -pos.side;
+      positions.forEach(item => closePosition(item.id, false, { trigger: 'emergency', silent: true }));
+      state.margin = Math.max(10, Math.round(totalMargin * (strategyContrarianCount() >= 2 ? 0.75 : 0.5)));
+      const opened = openPosition(side, false);
+      message = opened ? '逆势反手，仓位已反向。' : '反手失败，仓位已平。';
     } else {
       message = '你选择了硬扛。';
     }
@@ -2099,6 +2241,14 @@
     shopPerks,
     judgeNews,
     emergencyAction,
+    chooseStartingStrategy,
+    refreshStrategyOffers,
+    rerollStrategyOffers,
+    buyStrategyCard,
+    strategyPrice,
+    strategyDeckCards,
+    strategyStyleCount,
+    strategyContrarianCount,
     skipShop,
     resolveContractEvent,
     setDifficulty,
