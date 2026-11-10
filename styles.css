@@ -612,6 +612,7 @@ body.coach-mode .news-prompt { display: none !important; }
 .strategy-shop-deck { display: flex; gap: 5px; margin-top: 7px; }
 .strategy-shop-deck span { padding: 4px 7px; border-radius: 6px; background: var(--tint-green); color: var(--green-text); font-size: 9px; }
 .strategy-sell { border: 0; background: transparent; color: var(--short-text); font-size: 10px; padding: 0 0 0 3px; }
+.strategy-tier { padding: 1px 4px; border-radius: 4px; background: #f5e7c9; color: #8a5b12; font-size: 7px; font-weight: 900; vertical-align: middle; }
 .strategy-shop-deck .empty { background: var(--surface-tint); color: var(--text-dim); }
 .strategy-offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
 .strategy-reroll { width: 100%; margin-top: 8px; padding: 8px; font-size: 9px; color: var(--accent-deep); }

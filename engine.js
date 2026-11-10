@@ -181,6 +181,8 @@
         contract.playstyle.shopVisits += 1;
       }
       contract.act = nextAct;
+      contract.shopLevel = Math.min(3, nextAct);
+      if (contract.pendingShop) awardStrategyInterest();
     }
     contract.eventLog = contract.eventLog || [];
     contract.eventLog.push({
@@ -336,21 +338,41 @@
     return strategyDeckCards().filter(card => card.style === style).length;
   }
 
-  function drawStrategyCards(count, exclude = []) {
+  function strategyPrice(card) {
+    if (!card) return 0;
+    const discount = Math.min(300, (Number(state.contract?.newsPoints) || 0) * 50);
+    return Math.max(100, Number(card.cost) - discount);
+  }
+
+  function awardStrategyInterest() {
+    const contract = state.contract;
+    if (!contract || settings.coachMode || contract.interestAct === contract.act) return 0;
+    const interest = Math.min(500, Math.floor((state.cash * 0.05) / 10) * 10);
+    contract.interestAct = contract.act;
+    contract.lastInterest = interest;
+    if (interest <= 0) return 0;
+    state.cash += interest;
+    contract.giftIncome = (Number(contract.giftIncome) || 0) + interest;
+    return interest;
+  }
+
+  function strategyShopPool() {
+    const level = Math.max(1, Math.min(3, Number(state.contract?.shopLevel) || 1));
+    return (D.STRATEGY_CARDS || []).filter(card => {
+      if (level >= 3) return Number(card.tier) >= 2;
+      return Number(card.tier) <= 2;
+    });
+  }
+
+  function drawStrategyCards(count, exclude = [], poolCards = null) {
     const excluded = new Set(exclude);
-    const pool = (D.STRATEGY_CARDS || []).filter(card => !excluded.has(card.id));
+    const pool = (poolCards || D.STRATEGY_CARDS || []).filter(card => !excluded.has(card.id));
     const picked = [];
     while (picked.length < count && pool.length) {
       const index = Math.floor(Math.random() * pool.length);
       picked.push(pool.splice(index, 1)[0].id);
     }
     return picked;
-  }
-
-  function strategyPrice(card) {
-    if (!card) return 0;
-    const discount = Math.min(300, (Number(state.contract?.newsPoints) || 0) * 50);
-    return Math.max(100, Number(card.cost) - discount);
   }
 
   function chooseStartingStrategy(cardId) {
@@ -370,7 +392,7 @@
   function refreshStrategyOffers() {
     const contract = state.contract;
     if (!contract || settings.coachMode) return [];
-    contract.strategyOffers = drawStrategyCards(3, []);
+    contract.strategyOffers = drawStrategyCards(3, [], strategyShopPool());
     contract.strategyBought = false;
     save();
     emit();
@@ -383,7 +405,7 @@
     const cost = strategyFreeReroll() ? 0 : 100;
     if (state.cash < cost) return { ok: false, message: `刷新需要 $${cost}。` };
     state.cash -= cost;
-    contract.strategyOffers = drawStrategyCards(3, []);
+    contract.strategyOffers = drawStrategyCards(3, [], strategyShopPool());
     contract.strategyRerolls = (contract.strategyRerolls || 0) + 1;
     save();
     emit();
@@ -432,28 +454,38 @@
   }
 
   function strategyFeeDiscount() {
-    if (!strategyHasCard('trend-follow')) return 0;
-    const level = strategyLevel('trend-follow');
-    return Math.min(0.25, level * 0.05 + (strategyStyleCount('trend') >= 2 ? 0.05 : 0));
+    let rate = 0;
+    if (strategyHasCard('trend-follow')) rate += strategyLevel('trend-follow') * 0.05;
+    if (strategyHasCard('trend-apex')) rate += strategyLevel('trend-apex') * 0.07;
+    if (strategyStyleCount('trend') >= 2) rate += 0.05;
+    return Math.min(0.3, rate);
   }
 
   function strategyNewsBonus() {
-    if (!strategyHasCard('news-wire')) return 0;
-    return strategyLevel('news-wire') + (strategyStyleCount('news') >= 2 ? 1 : 0);
+    let points = 0;
+    if (strategyHasCard('news-wire')) points += strategyLevel('news-wire');
+    if (strategyHasCard('news-oracle')) points += strategyLevel('news-oracle');
+    if (strategyStyleCount('news') >= 2) points += 1;
+    return points;
   }
 
   function strategyDefenseRate() {
-    if (!strategyHasCard('defense-risk')) return 0;
-    return Math.min(0.4, strategyLevel('defense-risk') * 0.12 + (strategyStyleCount('defense') >= 2 ? 0.1 : 0));
+    let rate = 0;
+    if (strategyHasCard('defense-risk')) rate += strategyLevel('defense-risk') * 0.12;
+    if (strategyHasCard('defense-bunker')) rate += strategyLevel('defense-bunker') * 0.15;
+    if (strategyStyleCount('defense') >= 2) rate += 0.1;
+    return Math.min(0.5, rate);
   }
 
   function strategyTakeProfitBonus() {
-    if (!strategyHasCard('trend-break')) return 0;
-    return strategyLevel('trend-break') * 0.05;
+    let rate = 0;
+    if (strategyHasCard('trend-break')) rate += strategyLevel('trend-break') * 0.05;
+    if (strategyHasCard('trend-apex')) rate += strategyLevel('trend-apex') * 0.05;
+    return rate;
   }
 
   function strategyFreeReroll() {
-    return strategyHasCard('news-macro') && (state.contract?.strategyRerolls || 0) === 0;
+    return (strategyHasCard('news-macro') || strategyHasCard('news-oracle')) && (state.contract?.strategyRerolls || 0) === 0;
   }
 
   function strategyContrarianCount() {
@@ -462,8 +494,10 @@
 
   function strategyReverseKeep() {
     const synergy = strategyStyleCount('contrarian') >= 2 ? 0.1 : 0;
-    if (strategyHasCard('contrarian-fade')) return Math.min(0.85, 0.5 + strategyLevel('contrarian-fade') * 0.1 + synergy);
-    return Math.min(0.85, 0.5 + synergy);
+    let keep = 0.5 + synergy;
+    if (strategyHasCard('contrarian-fade')) keep += strategyLevel('contrarian-fade') * 0.1;
+    if (strategyHasCard('contrarian-ace')) keep += strategyLevel('contrarian-ace') * 0.12;
+    return Math.min(0.9, keep);
   }
 
   function contractGrade() {
@@ -598,6 +632,9 @@
       strategyOffers: [],
       strategyBought: false,
       strategyRerolls: 0,
+      shopLevel: 1,
+      lastInterest: 0,
+      interestAct: 0,
       playstyle: { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
@@ -609,7 +646,7 @@
       flags: {}
     };
     if (!settings.coachMode && config.id !== 'free') {
-      state.contract.strategyStartOffers = drawStrategyCards(3, []);
+      state.contract.strategyStartOffers = drawStrategyCards(3, [], (D.STRATEGY_CARDS || []).filter(card => Number(card.tier) === 1));
     }
     state.leverage = Math.min(state.leverage, maxLeverage());
     if (settings.coachMode) {
@@ -677,10 +714,13 @@
       state.contract.strategyStartOffers = Array.isArray(state.contract.strategyStartOffers) ? state.contract.strategyStartOffers : [];
       state.contract.strategyOffers = Array.isArray(state.contract.strategyOffers) ? state.contract.strategyOffers : [];
       if (state.contract.strategyPending && !state.contract.strategyStartOffers.length) {
-        state.contract.strategyStartOffers = drawStrategyCards(3, state.contract.strategyDeck || []);
+        state.contract.strategyStartOffers = drawStrategyCards(3, state.contract.strategyDeck || [], (D.STRATEGY_CARDS || []).filter(card => Number(card.tier) === 1));
       }
       state.contract.strategyBought = !!state.contract.strategyBought;
       state.contract.strategyRerolls = Math.max(0, Number(state.contract.strategyRerolls) || 0);
+      state.contract.shopLevel = Math.max(1, Math.min(3, Math.floor(Number(state.contract.shopLevel) || 1)));
+      state.contract.lastInterest = Math.max(0, Number(state.contract.lastInterest) || 0);
+      state.contract.interestAct = Math.max(0, Math.floor(Number(state.contract.interestAct) || 0));
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
         ? { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
         : { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
@@ -1420,7 +1460,7 @@
       message = '使用对冲卡，平掉一半仓位。';
     } else if (action === 'margin') {
       const hasCard = contract.cards && (contract.cards.margin || 0) > 0;
-      const hasDefense = strategyHasCard('defense-fortress');
+      const hasDefense = strategyHasCard('defense-fortress') || strategyHasCard('defense-bunker');
       if (!hasCard && !hasDefense) return { ok: false, message: '没有追加保证金手段。' };
       if (state.cash < 100) return { ok: false, message: '现金不足 $100。' };
       const pos = positions[0];

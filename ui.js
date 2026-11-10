@@ -387,7 +387,7 @@
     addAction('close', '平仓避险', 'danger');
     if (E.strategyContrarianCount() > 0) addAction('reverse', '逆势反手', 'danger');
     addAction('hedge', `对冲卡 ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
-    const hasDefense = E.strategyDeckCards().some(card => card.id === 'defense-fortress');
+    const hasDefense = E.strategyDeckCards().some(card => card.id === 'defense-fortress' || card.id === 'defense-bunker');
     addAction('margin', hasDefense && !(cards.margin > 0) ? '追加保证金（防守）' : `追加保证金 ×${cards.margin || 0}`, '', (!(cards.margin > 0) && !hasDefense) || E.state.cash < 100);
     addAction('hold', '硬扛', 'hold');
     $('emergencyModal').classList.remove('hidden');
@@ -478,7 +478,7 @@
         const owned = deck.has(card.id);
         const item = document.createElement('div');
         item.className = 'strategy-codex-card' + (owned ? ' owned' : '');
-        item.innerHTML = `<strong>${card.name}</strong><small>${card.desc}</small><em>${owned ? '当前交易台' : `$${card.cost}`}</em>`;
+        item.innerHTML = `<strong>${card.name}${card.tier === 3 ? ' <span class="strategy-tier">高费</span>' : ''}</strong><small>${card.desc}</small><em>${owned ? '当前交易台' : `$${card.cost}`}</em>`;
         grid.append(item);
       });
       section.append(grid);
@@ -498,9 +498,10 @@
     const offers = (contract.strategyOffers || []).length ? contract.strategyOffers : strategyOfferCache;
     if ((contract.strategyOffers || []).length) strategyOfferCache = contract.strategyOffers;
     else if (strategyOfferCache.length) contract.strategyOffers = [...strategyOfferCache];
-    const freeReroll = E.strategyDeckCards().some(card => card.id === 'news-macro') && (contract.strategyRerolls || 0) === 0;
+    const freeReroll = E.strategyDeckCards().some(card => card.id === 'news-macro' || card.id === 'news-oracle') && (contract.strategyRerolls || 0) === 0;
     const levelText = level => level > 1 ? ` ${'I'.repeat(level)}` : '';
-    root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店</strong><span>交易台 ${deck.length}/3 <button type="button" id="strategyCodexBtn" class="text-button">图鉴</button></span></div>
+    const roman = ['', 'I', 'II', 'III'][Math.max(1, Math.min(3, Number(contract.shopLevel) || 1))];
+    root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店 · 研究等级 ${roman}</strong><span>交易台 ${deck.length}/3 <button type="button" id="strategyCodexBtn" class="text-button">图鉴</button></span></div>
       <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}${levelText(deck[i].level)} <button type="button" class="strategy-sell" data-sell="${deck[i].id}" title="卖出">×</button></span>` : '<span class="empty">空槽</span>').join('')}</div>
       <div class="strategy-offers"></div>
       <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · ${freeReroll ? '免费' : '$100'}</button>`;
@@ -1427,9 +1428,9 @@
     const cash = E.state.cash;
     $('shopCash').textContent = `可用现金 ${D.money(cash)}`;
     const points = Math.max(0, Number(contract?.newsPoints) || 0);
-    $('shopPerks').textContent = points
-      ? `新闻积分 ${points}：每点让策略卡便宜 $50（最多 -$300）。`
-      : '新闻积分可以降低策略卡价格。';
+    const interest = Math.max(0, Number(contract?.lastInterest) || 0);
+    const interestText = interest ? `本幕利息 +${D.money(interest)}（不计入合同盈亏）。` : '没有利息。';
+    $('shopPerks').textContent = `${interestText} 新闻积分 ${points}：每点让策略卡便宜 $50（最多 -$300）。`;
     $('shopList').classList.add('hidden');
     $('shopList').replaceChildren();
     renderStrategyShop();
