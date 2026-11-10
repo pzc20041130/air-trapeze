@@ -596,6 +596,11 @@ body.coach-mode .news-prompt { display: none !important; }
 .strategy-start-list { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .strategy-start-card, .strategy-offer { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 12px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface-tint); color: var(--text-deep); }
 .strategy-start-card > span, .strategy-offer > span { font-size: 8px; font-weight: 900; letter-spacing: 0.1em; color: var(--accent-deep); }
+.strategy-style { display: inline-block; width: fit-content; padding: 2px 5px; border-radius: 5px; font-size: 8px !important; font-weight: 900; letter-spacing: 0.08em; }
+.style-trend { background: #e3f5ea; color: #2e7257; }
+.style-news { background: #e5f0f8; color: #346783; }
+.style-contrarian { background: #f8e7ec; color: #94475c; }
+.style-defense { background: #f5eddd; color: #8a6531; }
 .strategy-start-card strong, .strategy-offer strong { font-size: 14px; }
 .strategy-start-card small, .strategy-offer small { flex: 1; font-size: 9.5px; line-height: 1.55; color: var(--text-muted); white-space: pre-line; }
 .strategy-start-card b, .strategy-offer b { font-family: var(--font-mono); font-size: 10px; color: var(--accent-deep); }
@@ -608,8 +613,18 @@ body.coach-mode .news-prompt { display: none !important; }
 .strategy-shop-deck span { padding: 4px 7px; border-radius: 6px; background: var(--tint-green); color: var(--green-text); font-size: 9px; }
 .strategy-shop-deck .empty { background: var(--surface-tint); color: var(--text-dim); }
 .strategy-offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
-.strategy-reroll { margin-top: 8px; font-size: 9px; padding: 0; color: var(--accent-deep); }
+.strategy-reroll { width: 100%; margin-top: 8px; padding: 8px; font-size: 9px; color: var(--accent-deep); }
 .strategy-reroll:disabled { opacity: 0.4; }
+.strategy-codex-modal { width: min(820px, 94vw); }
+.strategy-codex-list { margin-top: 14px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+.strategy-codex-section + .strategy-codex-section { margin-top: 14px; }
+.strategy-codex-section h3 { font-size: 11px; color: var(--text-deep); }
+.strategy-codex-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 7px; }
+.strategy-codex-card { padding: 10px; border-radius: 9px; border: 1px solid var(--border-soft); background: var(--surface-tint); }
+.strategy-codex-card.owned { border-color: var(--border-panel-green); background: var(--tint-green); }
+.strategy-codex-card strong { display: block; font-size: 11px; color: var(--text-deep); }
+.strategy-codex-card small { display: block; margin-top: 4px; font-size: 9px; line-height: 1.5; color: var(--text-muted); white-space: pre-line; }
+.strategy-codex-card em { display: block; margin-top: 5px; font-family: var(--font-mono); font-size: 8.5px; color: var(--accent-deep); }
 
 .emergency-backdrop {
   position: fixed; inset: 0; z-index: 300; display: grid; place-items: center;
@@ -1234,5 +1249,10 @@ html[data-theme="night"] .case-badge.challenge { color: #d6ae72; background: #33
 
 @media (max-width: 720px) {
   .strategy-start-list, .strategy-offers { grid-template-columns: 1fr; }
+}
+
+
+@media (max-width: 720px) {
+  .strategy-codex-grid { grid-template-columns: 1fr; }
 }
 

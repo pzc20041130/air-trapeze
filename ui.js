@@ -443,7 +443,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'strategy-start-card';
-      button.innerHTML = `<span>${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>选择</b>`;
+      button.innerHTML = `<span class="strategy-style style-${card.style}">${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>选择</b>`;
       button.addEventListener('click', () => {
         const result = E.chooseStartingStrategy(card.id);
         if (!result.ok) { toast(result.message || '选不了。'); return; }
@@ -456,6 +456,36 @@
     $('strategyStartModal').classList.remove('hidden');
   }
 
+  function openStrategyCodex() {
+    const root = $('strategyCodexList');
+    const deck = new Set((E.state.contract?.strategyDeck) || []);
+    const styles = [
+      ['trend', '趋势'],
+      ['news', '消息'],
+      ['contrarian', '逆势'],
+      ['defense', '防守']
+    ];
+    root.replaceChildren();
+    styles.forEach(([style, label]) => {
+      const cards = (D.STRATEGY_CARDS || []).filter(card => card.style === style);
+      const section = document.createElement('section');
+      section.className = 'strategy-codex-section';
+      section.innerHTML = `<h3><span class="strategy-style style-${style}">${label}</span> ${cards.length} 张</h3>`;
+      const grid = document.createElement('div');
+      grid.className = 'strategy-codex-grid';
+      cards.forEach(card => {
+        const owned = deck.has(card.id);
+        const item = document.createElement('div');
+        item.className = 'strategy-codex-card' + (owned ? ' owned' : '');
+        item.innerHTML = `<strong>${card.name}</strong><small>${card.desc}</small><em>${owned ? '当前交易台' : `$${card.cost}`}</em>`;
+        grid.append(item);
+      });
+      section.append(grid);
+      root.append(section);
+    });
+    $('strategyCodexModal').classList.remove('hidden');
+  }
+
   function renderStrategyShop() {
     const root = $('strategyShop');
     const contract = E.state.contract;
@@ -466,10 +496,10 @@
     const deck = E.strategyDeckCards();
     const offers = (contract.strategyOffers || []).length ? contract.strategyOffers : strategyOfferCache;
     if ((contract.strategyOffers || []).length) strategyOfferCache = contract.strategyOffers;
-    root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店</strong><span>交易台 ${deck.length}/3</span></div>
+    root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店</strong><span>交易台 ${deck.length}/3 <button type="button" id="strategyCodexBtn" class="text-button">图鉴</button></span></div>
       <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}</span>` : '<span class="empty">空槽</span>').join('')}</div>
       <div class="strategy-offers"></div>
-      <button type="button" id="strategyReroll" class="text-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 $100</button>`;
+      <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · $100</button>`;
     const offersRoot = root.querySelector('.strategy-offers');
     offers.forEach(cardId => {
       const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
@@ -479,7 +509,7 @@
       button.type = 'button';
       button.className = 'strategy-offer';
       button.disabled = !!contract.strategyBought || deck.length >= 3 || E.state.cash < price;
-      button.innerHTML = `<span>${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>$${price} · 买下</b>`;
+      button.innerHTML = `<span class="strategy-style style-${card.style}">${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>$${price} · 买下</b>`;
       button.addEventListener('click', () => {
         const result = E.buyStrategyCard(card.id);
         if (!result.ok) { toast(result.message || '买不了。'); return; }
@@ -495,6 +525,7 @@
       renderShop();
       render();
     });
+    root.querySelector('#strategyCodexBtn')?.addEventListener('click', openStrategyCodex);
   }
 
   function renderOrder() {    const s = E.state;
@@ -2228,6 +2259,10 @@
     $('shopModal').addEventListener('click', event => {
       if (event.target === $('shopModal')) skipShop();
     });
+    $('strategyCodexClose').addEventListener('click', () => $('strategyCodexModal').classList.add('hidden'));
+    $('strategyCodexModal').addEventListener('click', event => {
+      if (event.target === $('strategyCodexModal')) $('strategyCodexModal').classList.add('hidden');
+    });
     $('contractPrev').addEventListener('click', () => {
       const total = (D.CONTRACTS || []).length;
       contractIndex = (contractIndex - 1 + total) % total;
@@ -2322,10 +2357,11 @@
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
         if (modalOpen) { closeModal(); return; }
-        const layers = ['endingsModal', 'shopModal', 'environmentModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
+        const layers = ['endingsModal', 'strategyCodexModal', 'shopModal', 'environmentModal', 'contractModal', 'casesModal', 'settingsModal', 'newsCenter', 'achModal', 'shareModal', 'tutorial', 'helpModal'];
         const open = layers.find(id => !$(id).classList.contains('hidden'));
         if (open === 'tutorial') closeTutorial();
         else if (open === 'endingsModal') closeEndings();
+        else if (open === 'strategyCodexModal') $('strategyCodexModal').classList.add('hidden');
         else if (open === 'shopModal') skipShop();
         else if (open === 'environmentModal') {
           $('environmentModal').classList.add('hidden');
