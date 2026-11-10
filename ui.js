@@ -387,7 +387,7 @@
     addAction('close', '平仓避险', 'danger');
     if (E.strategyContrarianCount() > 0) addAction('reverse', '逆势反手', 'danger');
     addAction('hedge', `对冲卡 ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
-    const hasDefense = E.strategyStyleCount('defense') > 0;
+    const hasDefense = E.strategyDeckCards().some(card => card.id === 'defense-fortress');
     addAction('margin', hasDefense && !(cards.margin > 0) ? '追加保证金（防守）' : `追加保证金 ×${cards.margin || 0}`, '', (!(cards.margin > 0) && !hasDefense) || E.state.cash < 100);
     addAction('hold', '硬扛', 'hold');
     $('emergencyModal').classList.remove('hidden');
@@ -418,7 +418,8 @@
       return;
     }
     const deck = E.strategyDeckCards();
-    const slots = [0, 1, 2].map(index => deck[index]?.name || '空');
+    const levelText = level => level > 1 ? ` ${'I'.repeat(level)}` : '';
+    const slots = [0, 1, 2].map(index => deck[index] ? `${deck[index].name}${levelText(deck[index].level)}` : '空');
     const styles = ['trend', 'news', 'contrarian', 'defense'].map(style => {
       const count = E.strategyStyleCount(style);
       return count ? `${({ trend: '趋势', news: '消息', contrarian: '逆势', defense: '防守' })[style]} ${count}` : '';
@@ -496,28 +497,43 @@
     const deck = E.strategyDeckCards();
     const offers = (contract.strategyOffers || []).length ? contract.strategyOffers : strategyOfferCache;
     if ((contract.strategyOffers || []).length) strategyOfferCache = contract.strategyOffers;
+    else if (strategyOfferCache.length) contract.strategyOffers = [...strategyOfferCache];
+    const freeReroll = E.strategyDeckCards().some(card => card.id === 'news-macro') && (contract.strategyRerolls || 0) === 0;
+    const levelText = level => level > 1 ? ` ${'I'.repeat(level)}` : '';
     root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店</strong><span>交易台 ${deck.length}/3 <button type="button" id="strategyCodexBtn" class="text-button">图鉴</button></span></div>
-      <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}</span>` : '<span class="empty">空槽</span>').join('')}</div>
+      <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}${levelText(deck[i].level)} <button type="button" class="strategy-sell" data-sell="${deck[i].id}" title="卖出">×</button></span>` : '<span class="empty">空槽</span>').join('')}</div>
       <div class="strategy-offers"></div>
-      <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · $100</button>`;
+      <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · ${freeReroll ? '免费' : '$100'}</button>`;
     const offersRoot = root.querySelector('.strategy-offers');
     offers.forEach(cardId => {
       const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
       if (!card) return;
+      const owned = deck.find(item => item.id === card.id);
+      const level = owned?.level || 0;
       const price = E.strategyPrice(card);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'strategy-offer';
-      button.disabled = !!contract.strategyBought || deck.length >= 3 || E.state.cash < price;
-      button.innerHTML = `<span class="strategy-style style-${card.style}">${card.styleLabel}</span><strong>${card.name}</strong><small>${card.desc}</small><b>$${price} · 买下</b>`;
+      button.disabled = !!contract.strategyBought || (owned ? level >= 3 : deck.length >= 3) || E.state.cash < price;
+      const action = owned ? `升级 ${level + 1 >= 3 ? 'III' : 'II'}` : '买下';
+      button.innerHTML = `<span class="strategy-style style-${card.style}">${card.styleLabel}</span><strong>${card.name}${level ? levelText(level) : ''}</strong><small>${card.desc}</small><b>$${price} · ${action}</b>`;
       button.addEventListener('click', () => {
         const result = E.buyStrategyCard(card.id);
         if (!result.ok) { toast(result.message || '买不了。'); return; }
         renderShop();
         render();
-        toast(`加入交易台：${card.name}。`);
+        toast(`${owned ? '升级' : '加入交易台'}：${card.name}${result.level > 1 ? levelText(result.level) : ''}。`);
       });
       offersRoot.append(button);
+    });
+    root.querySelectorAll('.strategy-sell').forEach(button => {
+      button.addEventListener('click', () => {
+        const result = E.sellStrategyCard(button.dataset.sell);
+        if (!result.ok) { toast(result.message || '卖不了。'); return; }
+        renderShop();
+        render();
+        toast(`卖出「${result.card.name}」，返还 ${D.money(result.refund)}。`);
+      });
     });
     root.querySelector('#strategyReroll')?.addEventListener('click', () => {
       const result = E.rerollStrategyOffers();

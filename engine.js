@@ -317,7 +317,19 @@
 
   function strategyDeckCards() {
     const ids = state.contract?.strategyDeck || [];
-    return ids.map(id => (D.STRATEGY_CARDS || []).find(card => card.id === id)).filter(Boolean);
+    const levels = state.contract?.strategyLevels || {};
+    return ids.map(id => {
+      const card = (D.STRATEGY_CARDS || []).find(item => item.id === id);
+      return card ? { ...card, level: Math.max(1, Math.min(3, Number(levels[id]) || 1)) } : null;
+    }).filter(Boolean);
+  }
+
+  function strategyLevel(cardId) {
+    return Math.max(1, Math.min(3, Number(state.contract?.strategyLevels?.[cardId]) || 1));
+  }
+
+  function strategyHasCard(cardId) {
+    return (state.contract?.strategyDeck || []).includes(cardId);
   }
 
   function strategyStyleCount(style) {
@@ -346,6 +358,7 @@
     if (!contract || !contract.strategyPending) return { ok: false, message: '现在不需要选择起始策略。' };
     if (!(contract.strategyStartOffers || []).includes(cardId)) return { ok: false, message: '这张策略不在本次选择里。' };
     contract.strategyDeck = [cardId];
+    contract.strategyLevels = { [cardId]: 1 };
     contract.strategyPending = false;
     contract.strategyStartOffers = [];
     contract.strategyOffers = [];
@@ -357,7 +370,7 @@
   function refreshStrategyOffers() {
     const contract = state.contract;
     if (!contract || settings.coachMode) return [];
-    contract.strategyOffers = drawStrategyCards(3, contract.strategyDeck || []);
+    contract.strategyOffers = drawStrategyCards(3, []);
     contract.strategyBought = false;
     save();
     emit();
@@ -367,19 +380,22 @@
   function rerollStrategyOffers() {
     const contract = state.contract;
     if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '现在不能刷新。' };
-    if (state.cash < 100) return { ok: false, message: '刷新需要 $100。' };
-    state.cash -= 100;
-    contract.strategyOffers = drawStrategyCards(3, contract.strategyDeck || []);
+    const cost = strategyFreeReroll() ? 0 : 100;
+    if (state.cash < cost) return { ok: false, message: `刷新需要 $${cost}。` };
+    state.cash -= cost;
+    contract.strategyOffers = drawStrategyCards(3, []);
     contract.strategyRerolls = (contract.strategyRerolls || 0) + 1;
     save();
     emit();
-    return { ok: true };
+    return { ok: true, cost };
   }
 
   function buyStrategyCard(cardId) {
     const contract = state.contract;
     if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '本次商店已经买过策略了。' };
-    if ((contract.strategyDeck || []).length >= 3) return { ok: false, message: '交易台已满。' };
+    const owned = (contract.strategyDeck || []).includes(cardId);
+    if (!owned && (contract.strategyDeck || []).length >= 3) return { ok: false, message: '交易台已满。' };
+    if (owned && strategyLevel(cardId) >= 3) return { ok: false, message: '这张策略已经满级。' };
     if ((contract.strategyOffers || []).length && !(contract.strategyOffers || []).includes(cardId)) {
       return { ok: false, message: '这张策略不在商店里。' };
     }
@@ -387,31 +403,67 @@
     const price = strategyPrice(card);
     if (!card || state.cash < price) return { ok: false, message: '现金不够。' };
     state.cash -= price;
-    contract.strategyDeck = [...(contract.strategyDeck || []), cardId];
+    contract.strategyLevels = contract.strategyLevels || {};
+    if (owned) {
+      contract.strategyLevels[cardId] = Math.min(3, strategyLevel(cardId) + 1);
+    } else {
+      contract.strategyDeck = [...(contract.strategyDeck || []), cardId];
+      contract.strategyLevels[cardId] = 1;
+    }
     contract.strategyBought = true;
     save();
     emit();
-    return { ok: true, card };
+    return { ok: true, card, level: contract.strategyLevels[cardId] };
+  }
+
+  function sellStrategyCard(cardId) {
+    const contract = state.contract;
+    if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '本次商店已经操作过了。' };
+    const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);
+    if (!card || !(contract.strategyDeck || []).includes(cardId)) return { ok: false, message: '交易台没有这张策略。' };
+    const level = strategyLevel(cardId);
+    state.cash += Math.round(card.cost * level * 0.5);
+    contract.strategyDeck = contract.strategyDeck.filter(id => id !== cardId);
+    delete contract.strategyLevels[cardId];
+    contract.strategyBought = true;
+    save();
+    emit();
+    return { ok: true, card, refund: Math.round(card.cost * level * 0.5) };
   }
 
   function strategyFeeDiscount() {
-    const count = strategyStyleCount('trend');
-    if (!count) return 0;
-    return Math.min(0.2, count * 0.06 + (count >= 2 ? 0.05 : 0));
+    if (!strategyHasCard('trend-follow')) return 0;
+    const level = strategyLevel('trend-follow');
+    return Math.min(0.25, level * 0.05 + (strategyStyleCount('trend') >= 2 ? 0.05 : 0));
   }
 
   function strategyNewsBonus() {
-    const count = strategyStyleCount('news');
-    return count ? count + (count >= 2 ? 1 : 0) : 0;
+    if (!strategyHasCard('news-wire')) return 0;
+    return strategyLevel('news-wire') + (strategyStyleCount('news') >= 2 ? 1 : 0);
   }
 
   function strategyDefenseRate() {
-    const count = strategyStyleCount('defense');
-    return count ? Math.min(0.4, count * 0.15 + (count >= 2 ? 0.1 : 0)) : 0;
+    if (!strategyHasCard('defense-risk')) return 0;
+    return Math.min(0.4, strategyLevel('defense-risk') * 0.12 + (strategyStyleCount('defense') >= 2 ? 0.1 : 0));
+  }
+
+  function strategyTakeProfitBonus() {
+    if (!strategyHasCard('trend-break')) return 0;
+    return strategyLevel('trend-break') * 0.05;
+  }
+
+  function strategyFreeReroll() {
+    return strategyHasCard('news-macro') && (state.contract?.strategyRerolls || 0) === 0;
   }
 
   function strategyContrarianCount() {
     return strategyStyleCount('contrarian');
+  }
+
+  function strategyReverseKeep() {
+    const synergy = strategyStyleCount('contrarian') >= 2 ? 0.1 : 0;
+    if (strategyHasCard('contrarian-fade')) return Math.min(0.85, 0.5 + strategyLevel('contrarian-fade') * 0.1 + synergy);
+    return Math.min(0.85, 0.5 + synergy);
   }
 
   function contractGrade() {
@@ -540,6 +592,7 @@
       emergencyCount: 0,
       emergencyActive: false,
       strategyDeck: [],
+      strategyLevels: {},
       strategyPending: !!(!settings.coachMode && config.id !== 'free'),
       strategyStartOffers: [],
       strategyOffers: [],
@@ -614,6 +667,10 @@
       state.contract.strategyDeck = Array.isArray(state.contract.strategyDeck)
         ? state.contract.strategyDeck.filter(id => (D.STRATEGY_CARDS || []).some(card => card.id === id)).slice(0, 3)
         : [];
+      state.contract.strategyLevels = state.contract.strategyLevels && typeof state.contract.strategyLevels === 'object' ? state.contract.strategyLevels : {};
+      (state.contract.strategyDeck || []).forEach(id => {
+        state.contract.strategyLevels[id] = Math.max(1, Math.min(3, Math.floor(Number(state.contract.strategyLevels[id]) || 1)));
+      });
       state.contract.strategyPending = !settings.coachMode && !state.runClosed && !state.contract.strategyDeck.length
         ? true
         : !!state.contract.strategyPending;
@@ -919,6 +976,13 @@
       if (relief > 0) {
         state.cash += relief;
         state.contract.strategyRelief = (Number(state.contract.strategyRelief) || 0) + relief;
+      }
+    }
+    if (isContractActive() && meta.trigger === 'take' && pnl > 0) {
+      const bonus = pnl * strategyTakeProfitBonus();
+      if (bonus > 0) {
+        state.cash += bonus;
+        state.contract.strategyBonus = (Number(state.contract.strategyBonus) || 0) + bonus;
       }
     }
     state.positions.splice(index, 1);
@@ -1356,7 +1420,7 @@
       message = '使用对冲卡，平掉一半仓位。';
     } else if (action === 'margin') {
       const hasCard = contract.cards && (contract.cards.margin || 0) > 0;
-      const hasDefense = strategyStyleCount('defense') > 0;
+      const hasDefense = strategyHasCard('defense-fortress');
       if (!hasCard && !hasDefense) return { ok: false, message: '没有追加保证金手段。' };
       if (state.cash < 100) return { ok: false, message: '现金不足 $100。' };
       const pos = positions[0];
@@ -1373,7 +1437,7 @@
       const totalMargin = positions.reduce((sum, item) => sum + item.margin, 0);
       const side = -pos.side;
       positions.forEach(item => closePosition(item.id, false, { trigger: 'emergency', silent: true }));
-      state.margin = Math.max(10, Math.round(totalMargin * (strategyContrarianCount() >= 2 ? 0.75 : 0.5)));
+      state.margin = Math.max(10, Math.round(totalMargin * strategyReverseKeep()));
       const opened = openPosition(side, false);
       message = opened ? '逆势反手，仓位已反向。' : '反手失败，仓位已平。';
     } else {
@@ -2245,6 +2309,7 @@
     refreshStrategyOffers,
     rerollStrategyOffers,
     buyStrategyCard,
+    sellStrategyCard,
     strategyPrice,
     strategyDeckCards,
     strategyStyleCount,

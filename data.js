@@ -582,15 +582,15 @@
     },
     {
       id: 'trend-break', name: '突破猎手', style: 'trend', styleLabel: '趋势', cost: 700,
-      desc: '顺势交易手续费 -8%。\n2 张趋势：再减 10%。'
+      desc: '止盈时额外获得 5% 利润/级。\n2 张趋势：手续费再减 10%。'
     },
     {
       id: 'news-wire', name: '快讯交易员', style: 'news', styleLabel: '消息', cost: 600,
-      desc: '新闻判断正确时，额外 +1 新闻积分。\n2 张消息：再 +1。'
+      desc: '新闻判断正确时，额外 +1 新闻积分/级。\n2 张消息：再 +1。'
     },
     {
       id: 'news-macro', name: '宏观研究员', style: 'news', styleLabel: '消息', cost: 700,
-      desc: '新闻判断正确时，额外 +1 新闻积分。\n2 张消息：再 +1。'
+      desc: '每幕第一次刷新策略免费。\n2 张消息：新闻积分再 +1。'
     },
     {
       id: 'contrarian-revert', name: '均值回归', style: 'contrarian', styleLabel: '逆势', cost: 600,
@@ -598,15 +598,15 @@
     },
     {
       id: 'contrarian-fade', name: '逆势猎手', style: 'contrarian', styleLabel: '逆势', cost: 700,
-      desc: '紧急事件解锁「反手」。\n2 张逆势：反手时保留更多保证金。'
+      desc: '反手时保留更多保证金，等级越高越多。\n2 张逆势：反手再保留 10%。'
     },
     {
       id: 'defense-risk', name: '风险官', style: 'defense', styleLabel: '防守', cost: 600,
-      desc: '止损时返还 15% 亏损，最多 $30。\n2 张防守：再返还 10%。'
+      desc: '止损时返还 12% 亏损/级，最多 $30。\n2 张防守：再返还 10%。'
     },
     {
       id: 'defense-fortress', name: '铁壁', style: 'defense', styleLabel: '防守', cost: 700,
-      desc: '止损时返还 15% 亏损，最多 $30。\n2 张防守：再返还 10%。'
+      desc: '紧急事件解锁「追加保证金」。\n2 张防守：止损再返还 10%。'
     }
   ];
 
