@@ -591,6 +591,30 @@ html[data-theme="night"] .trade-button.short { background: linear-gradient(150de
 .news-prompt-result { color: var(--accent-deep) !important; font-weight: 800; }
 .news-prompt-result.miss { color: var(--short-text) !important; }
 body.coach-mode .news-prompt { display: none !important; }
+.card-inventory { margin: -4px 0 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--accent-deep); }
+
+.emergency-backdrop {
+  position: fixed; inset: 0; z-index: 300; display: grid; place-items: center;
+  padding: 20px; background: rgba(20, 34, 30, 0.72); backdrop-filter: blur(4px);
+}
+.emergency-modal {
+  width: min(600px, 94vw); padding: 22px; border-radius: 18px;
+  border: 1px solid #c85f70; background: #fff7f5; color: var(--text-deep);
+  box-shadow: 0 26px 70px -24px rgba(90, 20, 35, 0.8);
+}
+.emergency-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.emergency-topline span { font-size: 9px; letter-spacing: 0.16em; font-weight: 900; color: #a83f50; }
+.emergency-topline strong { font-family: var(--font-mono); font-size: 34px; line-height: 1; color: #a83f50; }
+.emergency-sub { margin-top: 2px; font-size: 9px; color: #a83f50; }
+.emergency-modal h2 { margin-top: 14px; font-size: 22px; line-height: 1.35; }
+.emergency-text { margin-top: 8px; white-space: pre-line; font-size: 11.5px; line-height: 1.7; color: var(--text-muted); }
+.emergency-pnl { margin-top: 12px; padding: 9px 10px; border-radius: 8px; background: #fff0f2; border: 1px solid #efc9d1; font-family: var(--font-mono); font-size: 10.5px; color: #7f2738; }
+.emergency-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.emergency-action { border: 1px solid var(--border); border-radius: 10px; padding: 12px 8px; background: #fff; color: var(--text-deep); font-size: 11px; font-weight: 900; }
+.emergency-action.danger { background: #ffe4e8; border-color: #e5aab4; color: #7f2738; }
+.emergency-action.hold { background: #f1f4f2; color: var(--text-muted); }
+.emergency-action:disabled { opacity: 0.38; }
+.emergency-note { margin-top: 11px; font-size: 9px; color: var(--text-dim); text-align: center; }
 body.coach-mode .coach-order { display: block; }
 body.coach-mode .order-panel .order-pair,
 body.coach-mode .order-panel .compact-fields,

@@ -33,6 +33,9 @@
   let contractIndex = 0;
   let pendingContractId = null;
   let pendingShopKey = null;
+  let emergencyTimer = null;
+  let emergencyDeadline = 0;
+  let emergencyEventId = null;
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
@@ -138,6 +141,7 @@
     renderMajorAlert();
     syncMobileBar();
     renderNewsPrompt();
+    renderCardInventory();
     renderCoachPanel();
     maybeRestoreContractEvent();
     maybeRestoreShop();
@@ -343,6 +347,62 @@
       result.classList.add('hidden');
       result.textContent = '';
     }
+  }
+
+  function renderCardInventory() {
+    const box = $('cardInventory');
+    const contract = E.state.contract;
+    if (!contract || E.state.runClosed || E.state.mode !== 'sim') {
+      box.classList.add('hidden');
+      return;
+    }
+    const cards = contract.cards || { hedge: 0, margin: 0 };
+    box.classList.remove('hidden');
+    box.textContent = `应急卡：对冲 ×${cards.hedge || 0} · 追加保证金 ×${cards.margin || 0}`;
+  }
+
+  function showEmergency({ eventId, title, body, pair }) {
+    if (emergencyTimer) clearInterval(emergencyTimer);
+    emergencyEventId = eventId;
+    const positions = E.state.positions.filter(pos => pos.pair === pair);
+    const pnl = positions.reduce((sum, pos) => sum + E.positionPnl(pos), 0);
+    $('emergencyTitle').textContent = title || '突发消息';
+    $('emergencyText').textContent = body || '';
+    $('emergencyPnl').textContent = `${pair} · 持仓 ${positions.length} 笔 · 当前浮盈亏 ${D.signedMoney(pnl)}`;
+    const cards = E.state.contract?.cards || { hedge: 0, margin: 0 };
+    const root = $('emergencyActions');
+    root.replaceChildren();
+    const addAction = (action, label, cls, disabled = false) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `emergency-action ${cls || ''}`;
+      button.dataset.emergencyAction = action;
+      button.textContent = label;
+      button.disabled = disabled;
+      root.append(button);
+    };
+    addAction('close', '平仓避险', 'danger');
+    addAction('hedge', `对冲卡 ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
+    addAction('margin', `追加保证金 ×${cards.margin || 0}`, '', !(cards.margin > 0) || E.state.cash < 100);
+    addAction('hold', '硬扛', 'hold');
+    $('emergencyModal').classList.remove('hidden');
+    emergencyDeadline = Date.now() + 10000;
+    $('emergencySeconds').textContent = '10';
+    emergencyTimer = setInterval(() => {
+      const remaining = Math.max(0, emergencyDeadline - Date.now());
+      $('emergencySeconds').textContent = String(Math.ceil(remaining / 1000));
+      if (remaining <= 0) finishEmergency('hold');
+    }, 100);
+  }
+
+  function finishEmergency(action) {
+    if (emergencyTimer) clearInterval(emergencyTimer);
+    emergencyTimer = null;
+    $('emergencyModal').classList.add('hidden');
+    const result = E.emergencyAction(action);
+    render();
+    if (result?.message) toast(result.message);
+    if (E.state.contract?.eventReady) setTimeout(() => E.maybeContractEvent(), 220);
   }
 
   function renderOrder() {    const s = E.state;
@@ -1743,6 +1803,11 @@
       render();
       toast(result.correct ? '解读正确：新闻积分 +1。' : '误读。至少你没把命押上去。');
     });
+    $('emergencyActions').addEventListener('click', event => {
+      const button = event.target.closest('button[data-emergency-action]');
+      if (!button || button.disabled) return;
+      finishEmergency(button.dataset.emergencyAction);
+    });
     $('coachLong').addEventListener('click', () => submitCoachOrder(1));
     $('coachShort').addEventListener('click', () => submitCoachOrder(-1));
     $('coachClose').addEventListener('click', () => {
@@ -2236,6 +2301,7 @@
     showCloseModal,
     showSettlementModal,
     showContractEvent,
+    showEmergency,
     renderAchBook,
     renderNewsCenter,
     renderTicker

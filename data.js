@@ -564,6 +564,14 @@
     {
       id: 'extension', title: '延期一次', price: 300, kicker: 'EXTENSION',
       desc: '这份合同的交易次数 +1。\n多给自己一根救命稻草。'
+    },
+    {
+      id: 'hedge', title: '对冲卡', price: 150, kicker: 'CARD · HEDGE',
+      desc: '紧急事件时使用：平掉当前仓位的一半。\n用一次消耗一张。'
+    },
+    {
+      id: 'margin', title: '追加保证金卡', price: 100, kicker: 'CARD · MARGIN',
+      desc: '紧急事件时使用：从现金追加 $100 保证金。\n用一次消耗一张。'
     }
   ];
 

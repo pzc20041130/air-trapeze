@@ -268,6 +268,12 @@
       if (Array.isArray(contract.actEnds) && contract.actEnds.length === 3) {
         contract.actEnds[2] = Number(contract.actEnds[2]) + 1;
       }
+    } else if (item.id === 'hedge') {
+      contract.cards = contract.cards || { hedge: 0, margin: 0 };
+      contract.cards.hedge = (Number(contract.cards.hedge) || 0) + 1;
+    } else if (item.id === 'margin') {
+      contract.cards = contract.cards || { hedge: 0, margin: 0 };
+      contract.cards.margin = (Number(contract.cards.margin) || 0) + 1;
     }
     state.cash -= price;
     contract.pendingShop = false;
@@ -431,6 +437,9 @@
       shopDiscountUsed: false,
       giftIncome: 0,
       newsPoints: 0,
+      cards: { hedge: 1, margin: 0 },
+      emergencyCount: 0,
+      emergencyActive: false,
       playstyle: { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 },
       startEquity: account().equity,
       goalAnnounced: false,
@@ -489,6 +498,11 @@
       state.contract.shopDiscountUsed = !!state.contract.shopDiscountUsed;
       state.contract.giftIncome = Math.max(0, Number(state.contract.giftIncome) || 0);
       state.contract.newsPoints = Math.max(0, Math.floor(Number(state.contract.newsPoints) || 0));
+      state.contract.cards = state.contract.cards && typeof state.contract.cards === 'object'
+        ? { hedge: Math.max(0, Math.floor(Number(state.contract.cards.hedge) || 0)), margin: Math.max(0, Math.floor(Number(state.contract.cards.margin) || 0)) }
+        : { hedge: 0, margin: 0 };
+      state.contract.emergencyCount = Math.max(0, Math.min(2, Math.floor(Number(state.contract.emergencyCount) || 0)));
+      state.contract.emergencyActive = false;
       state.contract.playstyle = state.contract.playstyle && typeof state.contract.playstyle === 'object'
         ? { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0, ...state.contract.playstyle }
         : { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
@@ -819,7 +833,7 @@
     }
     if (bankruptNow) {
       checkBankruptcy();
-    } else {
+    } else if (!meta.silent) {
       ui('showCloseModal', {
         liquidated: !!liquidated,
         pnl,
@@ -1177,6 +1191,56 @@
       quote: template.quote || '', tone: template.tone || '', rare: !!template.rare, kind: template.kind || '',
       date: '模拟事件'
     });
+    maybeEmergency(activeSimNews[activeSimNews.length - 1]);
+  }
+
+  function maybeEmergency(event) {
+    if (!isContractActive() || state.runClosed || !state.positions.length || state.emergencyActive) return false;
+    if (!event || !(event.kind === 'breaking' || event.rare || event.tone === 'breaking')) return false;
+    if ((state.contract.emergencyCount || 0) >= 2) return false;
+    state.contract.emergencyCount = (state.contract.emergencyCount || 0) + 1;
+    state.emergencyActive = true;
+    save();
+    emit();
+    ui('showEmergency', {
+      eventId: event.id,
+      title: event.title,
+      body: event.body,
+      pair: state.pair
+    });
+    return true;
+  }
+
+  function emergencyAction(action) {
+    if (!state.emergencyActive) return { ok: false };
+    const contract = state.contract;
+    const positions = [...state.positions];
+    let message = '';
+    if (action === 'close') {
+      positions.forEach(pos => closePosition(pos.id, false, { trigger: 'emergency', silent: true }));
+      message = '已平仓避险。';
+    } else if (action === 'hedge') {
+      if (!contract.cards || (contract.cards.hedge || 0) <= 0) return { ok: false, message: '没有对冲卡。' };
+      contract.cards.hedge -= 1;
+      positions.forEach(pos => partialClose(pos.id, 0.5));
+      message = '使用对冲卡，平掉一半仓位。';
+    } else if (action === 'margin') {
+      if (!contract.cards || (contract.cards.margin || 0) <= 0) return { ok: false, message: '没有追加保证金卡。' };
+      if (state.cash < 100) return { ok: false, message: '现金不足 $100。' };
+      const pos = positions[0];
+      if (!pos) return { ok: false, message: '没有可追加的仓位。' };
+      contract.cards.margin -= 1;
+      state.cash -= 100;
+      pos.margin += 100;
+      pos.warned = true;
+      message = '使用追加保证金卡，仓位保证金 +$100。';
+    } else {
+      message = '你选择了硬扛。';
+    }
+    state.emergencyActive = false;
+    save();
+    emit();
+    return { ok: true, message };
   }
 
   function seedActiveNews() {
@@ -2034,6 +2098,7 @@
     shopPrice,
     shopPerks,
     judgeNews,
+    emergencyAction,
     skipShop,
     resolveContractEvent,
     setDifficulty,

@@ -152,6 +152,7 @@
               </div>
               <p id="newsPromptResult" class="news-prompt-result hidden"></p>
             </div>
+            <div id="cardInventory" class="card-inventory hidden"></div>
             <div id="coachOrder" class="coach-order hidden">
               <div class="coach-head"><span>新手模式</span><button id="coachExit" class="text-button" type="button">切回完整界面</button></div>
               <div class="coach-price-row"><span id="coachPair">EUR / USD</span><strong id="coachPrice">—</strong></div>
@@ -486,6 +487,18 @@
       <p id="eventText" class="event-text"></p>
       <div id="eventChoices" class="event-choices"></div>
       <p id="eventGiftHint" class="event-gift-hint">事件带来的生活费不计入合同进度；支出照算。</p>
+    </div>
+  </div>
+
+  <div id="emergencyModal" class="emergency-backdrop hidden" role="presentation">
+    <div class="emergency-modal" role="alertdialog" aria-modal="true" aria-labelledby="emergencyTitle">
+      <div class="emergency-topline"><span>⚠ EMERGENCY</span><strong id="emergencySeconds">10</strong></div>
+      <p class="emergency-sub">市场不会等你</p>
+      <h2 id="emergencyTitle"></h2>
+      <p id="emergencyText" class="emergency-text"></p>
+      <div id="emergencyPnl" class="emergency-pnl"></div>
+      <div id="emergencyActions" class="emergency-actions"></div>
+      <p class="emergency-note">10 秒内做出选择。时间到默认硬扛。</p>
     </div>
   </div>
 
