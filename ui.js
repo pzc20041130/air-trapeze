@@ -20,15 +20,17 @@
     { text: 'October. This is one of the peculiarly dangerous months to speculate in stocks.', who: 'Mark Twain · Pudd\u2019nhead Wilson, 1894' },
     { text: 'It\u2019s not whether you\u2019re right or wrong that\u2019s important, but how much money you make when you\u2019re right and how much you lose when you\u2019re wrong.', who: 'George Soros · The Alchemy of Finance, 1987' },
     { text: 'Don\u2019t look for the needle in the haystack. Just buy the haystack!', who: 'John C. Bogle · The Little Book of Common Sense Investing, 2007' },
-    { text: '\u8d35\u51fa\u5982\u7caa\u571f\uff0c\u8d31\u53d6\u5982\u73e0\u7389\u3002', who: '\u8ba1\u7136 \u00b7 \u300a\u53f2\u8bb0\u00b7\u8d27\u6b96\u5217\u4f20\u300b' },
-    { text: '\u8d22\u4e0d\u5165\u6025\u95e8\u3002', who: '\u4e2d\u56fd\u4fd7\u8bed' },
+    { text: '\u8d35\u51fa\u5982\u7caa\u571f\uff0c\u8d31\u53d6\u5982\u73e0\u7389\u3002', who: '\u8ba1\u7136 \u00b7 \u300a\u53f2\u8bb0\u00b7\u8d27\u6b96\u5217\u4f20\u300b', en: 'When prices are high, sell as if it were dirt; when they are low, buy as if it were jade.', whoEn: 'Ji Ran \u00b7 Records of the Grand Historian' },
+    { text: '\u8d22\u4e0d\u5165\u6025\u95e8\u3002', who: '\u4e2d\u56fd\u4fd7\u8bed', en: 'Money does not come in through a hurried door.', whoEn: 'Chinese proverb' },
     { text: 'Risk comes from not knowing what you are doing.', who: 'Warren Buffett · widely attributed' },
     { text: 'You can\u2019t predict. You can prepare.', who: 'Howard Marks · Oaktree client memo, 2001' },
     { text: 'There is nothing new in Wall Street. There can\u2019t be, because speculation is as old as the hills.', who: 'Jesse Livermore · Reminiscences of a Stock Operator, 1923' },
   ];
 
   function pickSettleQuote() {
-    return SETTLE_QUOTES[Math.floor(Math.random() * SETTLE_QUOTES.length)];
+    const quote = SETTLE_QUOTES[Math.floor(Math.random() * SETTLE_QUOTES.length)];
+    if (!isEN() || !quote.en) return quote;
+    return { text: quote.en, who: quote.whoEn || quote.who };
   }
 
   let historyExpanded = false;
@@ -63,6 +65,8 @@
   let strategyOfferCache = [];
 
   const isPlayback = () => E.state.mode === 'real' || E.state.mode === 'battle';
+  const isEN = () => !!window.FX_I18N?.isEnglish;
+  const L = (zh, en) => isEN() ? en : zh;
   const GLOSSARY_TERMS = Object.keys(D.GLOSSARY || {}).sort((a, b) => b.length - a.length);
   const GLOSSARY_RE = GLOSSARY_TERMS.length
     ? new RegExp(GLOSSARY_TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g')
@@ -217,8 +221,8 @@
     const drawdown = peak - a.equity;
     $('cashoutValue').textContent = D.money(a.equity);
     $('peakNote').textContent = drawdown > 0.01
-      ? ` · 峰值 ${D.money(peak)} · 已回撤 ${D.money(drawdown)}`
-      : ` · 本局峰值 ${D.money(peak)}`;
+      ? (isEN() ? " · Peak " + D.money(peak) + " · Drawdown " + D.money(drawdown) : ` · 峰值 ${D.money(peak)} · 已回撤 ${D.money(drawdown)}`)
+      : (isEN() ? " · Peak this run " + D.money(peak) : ` · 本局峰值 ${D.money(peak)}`);
     const contract = E.contractStatus();
     const contractChip = $('contractChip');
     const contractLine = $('contractLine');
@@ -227,20 +231,22 @@
     contractLine.classList.toggle('hidden', !hasContract);
     if (hasContract) {
       const done = !!contract.complete;
-      const actLabel = ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
+      const actLabel = isEN()
+        ? ['Act I', 'Act II', 'Act III'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))]
+        : ['第一幕', '第二幕', '第三幕'][Math.max(0, Math.min(2, (Number(contract.act) || 1) - 1))];
       const actEnd = contract.actEnds ? contract.actEnds[(Number(contract.act) || 1) - 1] : null;
       const hard = s.mode === 'sim' && !E.settings.coachMode;
-      const effectiveLabel = actEnd ? `${hard ? '有效成交' : '有效'} ${contract.actTrades || 0}/${actEnd}` : '';
+      const effectiveLabel = actEnd ? `${hard ? L('有效成交', 'Valid fills') : L('有效', 'Valid')} ${contract.actTrades || 0}/${actEnd}` : '';
       const heading = `${actLabel} · ${contract.title}${contract.environmentTitle ? ` · ${contract.environmentTitle}` : ''}`;
-      contractChip.textContent = `${heading}${done ? ' · 达成' : ''}`;
+      contractChip.textContent = `${heading}${done ? ` · ${L('达成', 'Achieved')}` : ''}`;
       contractChip.className = 'contract-chip' + (done ? ' done' : '');
       contractLine.className = 'contract-line' + (done ? ' done' : '');
       if (done) {
-        contractLine.textContent = `${actLabel} · 目标达成。现在收手，还是再贪一点？`;
+        contractLine.textContent = `${actLabel} · ${L('目标达成。现在收手，还是再贪一点？', 'Target hit. Cash out now, or get a little greedier?')}`;
       } else if (contract.goalType === 'debt') {
-        contractLine.textContent = `${heading}\n${hard ? '有效权益' : '权益'} ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · 贷款 ${D.money(s.debt)} · ${hard ? '成交' : '交易'} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
+        contractLine.textContent = `${heading}\n${hard ? L('有效权益', 'Effective equity') : L('权益', 'Equity')} ${D.money(contract.effectiveEquity ?? a.equity)} / ${D.money(contract.targetEquity)} · ${L('贷款', 'Loan')} ${D.money(s.debt)} · ${hard ? L('成交', 'Fills') : L('交易', 'Trades')} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       } else {
-        contractLine.textContent = `${heading}\n${hard ? '合同盈亏' : '已赚'} ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · ${hard ? '目标缺口' : '还差'} ${D.money(contract.remaining)} · ${hard ? '成交' : '交易'} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
+        contractLine.textContent = `${heading}\n${hard ? L('合同盈亏', 'Contract P&L') : L('已赚', 'Earned')} ${D.signedMoney(contract.profit)} / ${D.money(contract.targetProfit)} · ${hard ? L('目标缺口', 'Gap to goal') : L('还差', 'Remaining')} ${D.money(contract.remaining)} · ${hard ? L('成交', 'Fills') : L('交易', 'Trades')} ${contract.trades || 0}/${contract.maxTrades}${effectiveLabel ? ` · ${effectiveLabel}` : ''}`;
       }
     }
     const closed = !!s.runClosed;
@@ -256,13 +262,13 @@
     } else if (E.contractNoLoans()) {
       $('loanInfo').textContent = '这份合同不开放借款。先按合同目标走。';
     } else if (E.isSafe()) {
-      $('loanInfo').textContent = '安全网不开放贷款。想借钱加仓，先把安全网撤掉。';
+      $('loanInfo').textContent = isEN() ? 'No loans under the safety net. Drop the net first if you want to borrow into a position.' : '安全网不开放贷款。想借钱加仓，先把安全网撤掉。';
     } else if (s.debt > 0) {
-      $('loanInfo').textContent = `肥鱼信贷提醒：借款 ${D.money(s.loanPrincipal)} · 日利率 ${D.rateText(s.loanRate)} · 待还 ${D.money(s.debt)}。每交易日计息；模拟数据每 30 秒计一天。`;
+      $('loanInfo').textContent = isEN() ? `Fat Fish Credit: borrowed ${D.money(s.loanPrincipal)} · daily rate ${D.rateText(s.loanRate)} · owed ${D.money(s.debt)}. Interest accrues every trading day; simulated data runs one day every 30 seconds.` : `肥鱼信贷提醒：借款 ${D.money(s.loanPrincipal)} · 日利率 ${D.rateText(s.loanRate)} · 待还 ${D.money(s.debt)}。每交易日计息；模拟数据每 30 秒计一天。`;
     } else {
-      $('loanInfo').textContent = '肥鱼信贷，随借随到。最多 $200,000，日利率 0.01%–0.04%（按金额分级）。模拟数据每 30 秒计一天。';
+      $('loanInfo').textContent = isEN() ? 'Fat Fish Credit, cash on demand. Up to $200,000 at 0.01%–0.04% a day (tiered by amount). Simulated data: one day every 30 seconds.' : '肥鱼信贷，随借随到。最多 $200,000，日利率 0.01%–0.04%（按金额分级）。模拟数据每 30 秒计一天。';
     }
-    if (!closed && s.mode !== 'challenge') $('loanInfo').textContent += ` · 空中飞人线 ${D.money(E.airborneThreshold())}`;
+    if (!closed && s.mode !== 'challenge') $('loanInfo').textContent += isEN() ? ` · Trapeze line ${D.money(E.airborneThreshold())}` : ` · 空中飞人线 ${D.money(E.airborneThreshold())}`;
     $('borrowBtn').disabled = s.mode === 'challenge' || E.isSafe() || closed || E.contractNoLoans();
     $('repayBtn').disabled = s.mode === 'challenge' || s.debt <= 0 || closed;
   }
@@ -367,8 +373,8 @@
       result.classList.remove('hidden');
       result.className = 'news-prompt-result' + (event.judged.correct ? '' : ' miss');
       result.textContent = event.judged.correct
-        ? `方向判断正确 · 新闻积分 +1`
-        : `方向判断错误 · 没有积分`;
+        ? L('方向判断正确 · 新闻积分 +1', 'Direction correct · +1 news point')
+        : L('方向判断错误 · 没有积分', 'Direction wrong · no points');
     } else {
       actions.classList.remove('hidden');
       result.classList.add('hidden');
@@ -385,7 +391,7 @@
     }
     const cards = contract.cards || { hedge: 0, margin: 0 };
     box.classList.remove('hidden');
-    box.textContent = `应急卡：对冲 ×${cards.hedge || 0} · 追加保证金 ×${cards.margin || 0}`;
+    box.textContent = `${L('应急卡', 'Emergency cards')}：${L('对冲', 'Hedge')} ×${cards.hedge || 0} · ${L('追加保证金', 'Add Margin')} ×${cards.margin || 0}`;
   }
 
   function showEmergency({ eventId, title, body, pair }) {
@@ -393,9 +399,9 @@
     emergencyEventId = eventId;
     const positions = E.state.positions.filter(pos => pos.pair === pair);
     const pnl = positions.reduce((sum, pos) => sum + E.positionPnl(pos), 0);
-    $('emergencyTitle').textContent = title || '突发消息';
+    $('emergencyTitle').textContent = title || L('突发消息', 'Breaking News');
     $('emergencyText').textContent = body || '';
-    $('emergencyPnl').textContent = `${pair} · 持仓 ${positions.length} 笔 · 当前浮盈亏 ${D.signedMoney(pnl)}`;
+    $('emergencyPnl').textContent = `${pair} · ${L('持仓', 'Positions')} ${positions.length} ${L('笔', '')} · ${L('当前浮盈亏', 'Current P&L')} ${D.signedMoney(pnl)}`;
     const cards = E.state.contract?.cards || { hedge: 0, margin: 0 };
     const root = $('emergencyActions');
     root.replaceChildren();
@@ -408,12 +414,12 @@
       button.disabled = disabled;
       root.append(button);
     };
-    addAction('close', '平仓避险', 'danger');
-    if (E.strategyContrarianCount() > 0) addAction('reverse', '逆势反手', 'danger');
-    addAction('hedge', `对冲卡 ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
+    addAction('close', L('平仓避险', 'Close & Run'), 'danger');
+    if (E.strategyContrarianCount() > 0) addAction('reverse', L('逆势反手', 'Flip'), 'danger');
+    addAction('hedge', `${L('对冲卡', 'Hedge Card')} ×${cards.hedge || 0}`, '', !(cards.hedge > 0));
     const hasDefense = E.strategyDeckCards().some(card => card.id === 'defense-fortress' || card.id === 'defense-bunker');
-    addAction('margin', hasDefense && !(cards.margin > 0) ? '追加保证金（防守）' : `追加保证金 ×${cards.margin || 0}`, '', (!(cards.margin > 0) && !hasDefense) || E.state.cash < 100);
-    addAction('hold', '硬扛', 'hold');
+    addAction('margin', hasDefense && !(cards.margin > 0) ? L('追加保证金（防守）', 'Add Margin (Defense)') : `${L('追加保证金', 'Add Margin')} ×${cards.margin || 0}`, '', (!(cards.margin > 0) && !hasDefense) || E.state.cash < 100);
+    addAction('hold', L('硬扛', 'Hold and Pray'), 'hold');
     $('emergencyModal').classList.remove('hidden');
     emergencyDeadline = Date.now() + 10000;
     $('emergencySeconds').textContent = '10';
@@ -443,13 +449,16 @@
     }
     const deck = E.strategyDeckCards();
     const levelText = level => level > 1 ? ` ${'I'.repeat(level)}` : '';
-    const slots = [0, 1, 2].map(index => deck[index] ? `${deck[index].name}${levelText(deck[index].level)}` : '空');
+    const slots = [0, 1, 2].map(index => deck[index] ? `${deck[index].name}${levelText(deck[index].level)}` : L('空', 'Empty'));
+    const styleNames = isEN()
+      ? { trend: 'Trend', news: 'News', contrarian: 'Contrarian', defense: 'Defense' }
+      : { trend: '趋势', news: '消息', contrarian: '逆势', defense: '防守' };
     const styles = ['trend', 'news', 'contrarian', 'defense'].map(style => {
       const count = E.strategyStyleCount(style);
-      return count ? `${({ trend: '趋势', news: '消息', contrarian: '逆势', defense: '防守' })[style]} ${count}` : '';
+      return count ? `${styleNames[style]} ${count}` : '';
     }).filter(Boolean);
     box.classList.remove('hidden');
-    box.textContent = `交易台：${slots.join(' · ')}${styles.length ? `　|　${styles.join(' · ')}` : ''}`;
+    box.textContent = `${L('交易台', 'Desk')}：${slots.join(' · ')}${styles.length ? `　|　${styles.join(' · ')}` : ''}`;
   }
 
   function settingsCoach() {
@@ -921,16 +930,16 @@
     const current = E.price(E.state.pair);
     const lines = [];
     E.state.positions.filter(pos => pos.pair === E.state.pair).forEach(pos => {
-      lines.push({ price: pos.entry, color: '#e6b35c', label: `开仓 ${D.priceText(pos.pair, pos.entry)}` });
+      lines.push({ price: pos.entry, color: '#e6b35c', label: `${L('开仓', 'Entry')} ${D.priceText(pos.pair, pos.entry)}` });
       const liq = E.liquidationPrice(pos);
       if (Number.isFinite(liq) && Number.isFinite(current) && Math.abs(liq - current) / current < 0.15) {
-        lines.push({ price: liq, color: '#e06e81', label: `爆仓 ${D.priceText(pos.pair, liq)}` });
+        lines.push({ price: liq, color: '#e06e81', label: `${L('爆仓', 'Blowup')} ${D.priceText(pos.pair, liq)}` });
       }
       if (pos.stopPrice != null && Number.isFinite(pos.stopPrice) && Math.abs(pos.stopPrice - current) / current < 0.15) {
-        lines.push({ price: pos.stopPrice, color: '#e49a5c', label: `止损 ${D.priceText(pos.pair, pos.stopPrice)}` });
+        lines.push({ price: pos.stopPrice, color: '#e49a5c', label: `${L('止损', 'Stop')} ${D.priceText(pos.pair, pos.stopPrice)}` });
       }
       if (pos.takePrice != null && Number.isFinite(pos.takePrice) && Math.abs(pos.takePrice - current) / current < 0.15) {
-        lines.push({ price: pos.takePrice, color: '#43a77a', label: `止盈 ${D.priceText(pos.pair, pos.takePrice)}` });
+        lines.push({ price: pos.takePrice, color: '#43a77a', label: `${L('止盈', 'Take')} ${D.priceText(pos.pair, pos.takePrice)}` });
       }
     });
     window.FXChart.render(canvas, {

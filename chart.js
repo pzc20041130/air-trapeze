@@ -6,6 +6,7 @@
     day: { bg: '#24383c', grid: '#3c5254', vgrid: '#32494b', axis: '#91a9a8', date: '#7f9999', up: '#8fddb1', down: '#f19aa8', dash: '#d5e1b3', empty: '#8fb3a9' },
     night: { bg: '#0e2023', grid: '#24413c', vgrid: '#1c3436', axis: '#7e9a94', date: '#5f7d78', up: '#8fddb1', down: '#f19aa8', dash: '#c9d8a8', empty: '#7e9a94' }
   };
+  const T = text => window.FX_I18N?.isEnglish ? window.FX_I18N.translate(text) : text;
 
   function render(canvas, opts) {
     if (!canvas) return;
@@ -30,7 +31,7 @@
       ctx.fillStyle = theme.empty;
       ctx.font = '12px "DM Mono", Consolas, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(opts.emptyText || '等待行情…', w / 2, h / 2);
+      ctx.fillText(T(opts.emptyText || '等待行情…'), w / 2, h / 2);
       ctx.textAlign = 'left';
       return;
     }
@@ -129,9 +130,9 @@
       ctx.fillText(String(opts.dates[opts.dates.length - 1]).slice(5), right, h - 9);
     } else {
       ctx.textAlign = 'left';
-      ctx.fillText('← 过去', left, h - 9);
+      ctx.fillText(T('← 过去'), left, h - 9);
       ctx.textAlign = 'right';
-      ctx.fillText('现在 →', right, h - 9);
+      ctx.fillText(T('现在 →'), right, h - 9);
     }
     ctx.textAlign = 'left';
 

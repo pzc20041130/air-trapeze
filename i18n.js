@@ -169,16 +169,41 @@
     '已解锁': 'Unlocked',
     '未解锁': 'Locked',
     '当前价格': 'Current price',
+    '模拟账户': 'Sim Account',
+    '模拟数据账户': 'Simulated data account',
+    '标准': 'Standard',
+    '大肥鱼': 'Big Fat Fish',
+    '模拟行情': 'Simulated market',
+    '实时模拟': 'Live simulation',
+    '合计 {money} 保证金': '{money} total margin',
+    '做多': 'Long',
+    '做空': 'Short',
+    '浮动盈亏': 'Floating P&L',
+    '平仓': 'Close',
+    '开仓': 'Entry',
+    '保证金': 'Margin',
+    '爆仓': 'Blowup',
+    '现价距爆仓': 'Distance to blowup',
+    '风险偏高': 'Elevated risk',
+    '交易记录': 'Trade history',
     '持仓': 'Positions',
-    '暂无持仓': 'No positions',
-    '展开记录': 'Expand records',
-    '正在读取历史汇率…': 'Loading historical rates...',
-    '等待市场消息…': 'Waiting for market news...',
-    '新闻中心': 'News Center',
-    '模拟走势 · 仅供游戏使用': 'Simulated chart · for game use only',
-    '快讯': 'Wire',
-    '金盆洗手': 'Cash Out',
-    '今日榜单': 'Today\'s board'
+    '买下': 'Buy',
+    '升级': 'Upgrade',
+    '刷新策略': 'Reroll',
+    '免费': 'Free',
+    '本幕利息': 'Interest this act',
+    '不计入合同盈亏': 'not counted toward contract P&L',
+    '新闻积分': 'News points',
+    '每点让策略卡便宜': 'Each point makes strategy cards cheaper by',
+    '本幕利息 +{money}（不计入合同盈亏）。': 'Interest this act +{money} (not counted toward contract P&L).',
+    '新闻积分 {n}：每点让策略卡便宜 $50（最多 -$300）。': 'News points {n}: each point makes strategy cards $50 cheaper (max -$300).',
+    '收手离场': 'Cash Out',
+    '当前价格': 'Current price',
+    '← 过去': '← Past',
+    '现在 →': 'Present →',
+    '等待行情…': 'Waiting for prices...',
+    '警报': 'Alert',
+    '合计 {money} 保证金': '{money} total margin'
   };
   if (window.FX_EN_UI) Object.assign(window.FX_EN_UI, EXTRA_UI);
 
@@ -378,6 +403,7 @@
   const CONTENT_PHRASES = [
     ['第一幕', 'Act I'], ['第二幕', 'Act II'], ['第三幕', 'Act III'],
     ['当前浮盈亏', 'Current P&L'], ['合同盈亏', 'Contract P&L'], ['目标缺口', 'Gap to goal'],
+    ['合同目标', 'contract target'], ['不开放借款', 'does not allow borrowing'], ['先按', 'work toward '],
     ['有效成交', 'Valid fills'], ['有效权益', 'Effective equity'], ['已赚', 'Earned'],
     ['持仓 ', 'positions: '], [' 笔', ''], ['当前浮盈亏', 'Current P&L'],
     ['追加保证金（防守）', 'Add Margin (Defense)'], ['追加保证金', 'Add Margin'],
@@ -386,7 +412,13 @@
     ['开仓价格', 'Entry price'], ['开仓价', 'Entry'], ['当前价格', 'Current price'],
     ['浮盈', 'Floating profit'], ['浮亏', 'Floating loss'], ['峰值', 'Peak'], ['回撤', 'Drawdown'],
     ['消息 ', 'News '], ['趋势 ', 'Trend '], ['逆势 ', 'Contrarian '], ['防守 ', 'Defense '],
-    ['交易台', 'Trading desk'], ['成交 ', 'Fills '],
+    ['交易台', 'Trading desk'], ['成交 ', 'Fills '], ['买下', 'Buy'], ['升级', 'Upgrade'],
+    ['刷新策略', 'Reroll'], ['免费', 'Free'], ['本幕利息', 'Interest this act'],
+    ['不计入合同盈亏', 'not counted toward contract P&L'], ['新闻积分', 'News points'],
+    ['这份合同', 'This contract '], ['走。', '.'],
+    ['警报', 'Alert'], ['剩 ', ''], [' 根', ' bars'], [' 秒', 's'],
+    ['（', ' ('], ['）', ')'], ['。', '. '], ['，', ', '], ['：', ': '], ['、', ', '],
+    ['不计入Contract P&L', 'not counted toward contract P&L'], ['不计入', 'not counted toward '],
     ['交易 ', 'Trades '], ['目标', 'Target'], ['租赁', 'Rent'],
     ['10 秒内做出选择。时间到默认硬扛。', 'Choose within 10 seconds. Timeout = hold.'],
     ['第一笔。每个赌狗都从「试试水」开始。', 'First trade. Every degenerate starts with "just testing the water."']
@@ -450,7 +482,15 @@
       if (meta) meta.setAttribute('content', 'Air Trapeze · Vertigo Observation Room — a black-comedy forex trading game with crisis archives.');
     }
     apply(document.body);
-    const observer = new MutationObserver(() => apply(document.body));
+    let scheduled = false;
+    const observer = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      setTimeout(() => {
+        scheduled = false;
+        apply(document.body);
+      }, 0);
+    });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label', 'alt'] });
   }
 
