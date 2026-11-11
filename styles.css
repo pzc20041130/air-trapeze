@@ -590,7 +590,6 @@ html[data-theme="night"] .trade-button.short { background: linear-gradient(150de
 .news-prompt-actions button:disabled { opacity: 0.4; }
 .news-prompt-result { color: var(--accent-deep) !important; font-weight: 800; }
 .news-prompt-result.miss { color: var(--short-text) !important; }
-body.coach-mode .news-prompt { display: none !important; }
 .card-inventory { margin: -4px 0 12px; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--accent-deep); }
 .strategy-bar { margin: -4px 0 12px; padding: 7px 9px; border-radius: 8px; background: var(--surface-tint); border: 1px solid var(--border-soft); font-size: 9.5px; line-height: 1.5; color: var(--text-muted); }
 .strategy-start-list { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }

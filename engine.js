@@ -175,7 +175,7 @@
     } else {
       contract.eventReady = false;
       const nextAct = Math.min(3, act + 1);
-      if (nextAct > act && act < 3 && !settings.coachMode) {
+      if (nextAct > act && act < 3 && settings.coachMode) {
         contract.pendingShop = true;
         contract.playstyle = contract.playstyle || { newsTrades: 0, newsReads: 0, newsMisses: 0, stopCount: 0, longHolds: 0, allIn: 0, smallTrades: 0, shopVisits: 0, shopBuys: 0, blowups: 0 };
         contract.playstyle.shopVisits += 1;
@@ -225,7 +225,7 @@
   }
 
   function judgeNews(eventId, direction) {
-    if (!isContractActive() || state.runClosed || settings.coachMode) return { ok: false, message: '新手模式不参与新闻解读。' };
+    if (!isContractActive() || state.runClosed) return { ok: false, message: '现在不能解读新闻。' };
     const event = activeSimNews.find(item => item.id === eventId);
     if (!event) return { ok: false, message: '这条新闻已经过去了。' };
     if (event.judged) return { ok: false, message: '这条新闻已经解读过了。' };
@@ -346,7 +346,7 @@
 
   function awardStrategyInterest() {
     const contract = state.contract;
-    if (!contract || settings.coachMode || contract.interestAct === contract.act) return 0;
+    if (!contract || contract.interestAct === contract.act) return 0;
     const interest = Math.min(500, Math.floor((state.cash * 0.05) / 10) * 10);
     contract.interestAct = contract.act;
     contract.lastInterest = interest;
@@ -391,7 +391,7 @@
 
   function refreshStrategyOffers() {
     const contract = state.contract;
-    if (!contract || settings.coachMode) return [];
+    if (!contract || !settings.coachMode) return [];
     contract.strategyOffers = drawStrategyCards(3, [], strategyShopPool());
     contract.strategyBought = false;
     save();
@@ -622,12 +622,12 @@
       shopDiscountUsed: false,
       giftIncome: 0,
       newsPoints: 0,
-      cards: { hedge: 1, margin: 0 },
+      cards: { hedge: settings.coachMode ? 1 : 0, margin: 0 },
       emergencyCount: 0,
       emergencyActive: false,
       strategyDeck: [],
       strategyLevels: {},
-      strategyPending: !!(!settings.coachMode && config.id !== 'free'),
+      strategyPending: !!(settings.coachMode && config.id !== 'free'),
       strategyStartOffers: [],
       strategyOffers: [],
       strategyBought: false,
@@ -645,7 +645,7 @@
       eventLog: [],
       flags: {}
     };
-    if (!settings.coachMode && config.id !== 'free') {
+    if (settings.coachMode && config.id !== 'free') {
       state.contract.strategyStartOffers = drawStrategyCards(3, [], (D.STRATEGY_CARDS || []).filter(card => Number(card.tier) === 1));
     }
     state.leverage = Math.min(state.leverage, maxLeverage());
@@ -708,9 +708,7 @@
       (state.contract.strategyDeck || []).forEach(id => {
         state.contract.strategyLevels[id] = Math.max(1, Math.min(3, Math.floor(Number(state.contract.strategyLevels[id]) || 1)));
       });
-      state.contract.strategyPending = !settings.coachMode && !state.runClosed && !state.contract.strategyDeck.length
-        ? true
-        : !!state.contract.strategyPending;
+      state.contract.strategyPending = settings.coachMode && !state.runClosed && !state.contract.strategyDeck.length;
       state.contract.strategyStartOffers = Array.isArray(state.contract.strategyStartOffers) ? state.contract.strategyStartOffers : [];
       state.contract.strategyOffers = Array.isArray(state.contract.strategyOffers) ? state.contract.strategyOffers : [];
       if (state.contract.strategyPending && !state.contract.strategyStartOffers.length) {

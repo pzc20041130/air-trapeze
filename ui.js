@@ -175,7 +175,7 @@
     renderCoachPanel();
     maybeRestoreContractEvent();
     maybeRestoreShop();
-    if (E.state.contract?.strategyPending && !E.settings.coachMode) setTimeout(openStrategyStart, 150);
+    if (E.state.contract?.strategyPending && E.settings.coachMode) setTimeout(openStrategyStart, 150);
     drawChart();
     scheduleTermify();
   }
@@ -319,7 +319,7 @@
     $('coachOrder').classList.toggle('hidden', !active);
     if (!active) return;
     $('coachExit').disabled = locked;
-    $('coachExit').textContent = locked ? '合同内锁定' : '切回完整界面';
+    $('coachExit').textContent = locked ? L('合同内锁定', 'Locked in contract') : L('切到困难模式', 'Switch to Hard Mode');
     const s = E.state;
     $('coachPair').textContent = s.pair;
     $('coachPrice').textContent = D.priceText(s.pair, E.price(s.pair));
@@ -385,7 +385,7 @@
   function renderCardInventory() {
     const box = $('cardInventory');
     const contract = E.state.contract;
-    if (!contract || E.state.runClosed || E.state.mode !== 'sim') {
+    if (!contract || E.state.runClosed || E.state.mode !== 'sim' || !E.settings.coachMode) {
       box.classList.add('hidden');
       return;
     }
@@ -443,7 +443,7 @@
   function renderStrategyBar() {
     const box = $('strategyBar');
     const contract = E.state.contract;
-    if (!contract || contract.id === 'free' || settingsCoach()) {
+    if (!contract || contract.id === 'free' || !settingsCoach()) {
       box.classList.add('hidden');
       return;
     }
@@ -467,7 +467,7 @@
 
   function openStrategyStart() {
     const contract = E.state.contract;
-    if (!contract || !contract.strategyPending || E.settings.coachMode) return;
+    if (!contract || !contract.strategyPending || !E.settings.coachMode) return;
     if (!$('strategyStartModal').classList.contains('hidden')) return;
     const root = $('strategyStartList');
     root.replaceChildren();
@@ -500,8 +500,8 @@
       ['defense', L('防守', 'Defense')]
     ];
     const contract = E.state.contract;
-    const hint = E.settings.coachMode
-      ? L('卡牌和策略商店只在困难模式开放。去「设置 → 难度模式」切到困难模式。', 'Cards and the strategy shop are available in Hard Mode. Go to Settings → Difficulty Mode and switch to Hard.')
+    const hint = !E.settings.coachMode
+      ? L('困难模式是真实外汇模式，不使用卡牌和策略商店。去「设置 → 难度模式」切到简单模式。', 'Hard Mode is the realistic forex mode and does not use cards or the strategy shop. Go to Settings → Difficulty Mode and switch to Simple.')
       : !contract || contract.id === 'free'
         ? L('图鉴随时可看；先签一份非自由模式的合同，才会出现起始策略和交易台。', 'The codex is always available. Sign a non-Free contract to unlock the starting strategy and trading desk.')
         : !(contract.strategyDeck || []).length
@@ -532,7 +532,7 @@
   function renderStrategyShop() {
     const root = $('strategyShop');
     const contract = E.state.contract;
-    if (!contract || E.settings.coachMode) {
+    if (!contract || !E.settings.coachMode) {
       root.replaceChildren();
       return;
     }
@@ -1455,10 +1455,10 @@
 
   function openShop() {
     const contract = E.state.contract;
-    if (!contract || !contract.pendingShop) return;
+    if (!contract || !contract.pendingShop || !E.settings.coachMode) return;
     if (!$('shopModal').classList.contains('hidden')) return;
     pendingShopKey = `${contract.id}:${contract.act}`;
-    if (!E.settings.coachMode) strategyOfferCache = E.refreshStrategyOffers();
+    if (E.settings.coachMode) strategyOfferCache = E.refreshStrategyOffers();
     $('eventModal').classList.add('hidden');
     $('shopModal').classList.remove('hidden');
     renderShop();
@@ -1524,7 +1524,7 @@
       ? '自由模式：没有目标，想走就走。'
       : `已签下「${item ? item.title : '合同'}」${env ? ` · ${env.title}` : ''}。`);
     render();
-    if (!E.settings.coachMode && id !== 'free') setTimeout(openStrategyStart, 120);
+    if (E.settings.coachMode && id !== 'free') setTimeout(openStrategyStart, 120);
     return true;
   }
 
@@ -1844,10 +1844,10 @@
       btn.disabled = settingsLocked;
     });
     $('coachSettingHint').textContent = settingsLocked
-      ? '合同进行中已锁定；收手或结束后再切换'
+      ? L('合同进行中已锁定；收手或结束后再切换', 'Locked while a contract is active. Cash out or finish first.')
       : s.coachMode
-        ? '新手模式：只看涨/跌，固定 $100/5×，目标更低，跳过环境/商店'
-        : '困难模式：完整下单、环境、三幕、商店，合同目标更高';
+        ? L('简单模式：固定 $100/5×，带起始策略和策略商店，目标更低', 'Simple Mode: fixed $100/5×, starting strategy and strategy shop, lower targets.')
+        : L('困难模式：真实外汇，完整下单、环境、新闻；不使用卡牌和商店', 'Hard Mode: realistic forex, full orders, environments, news; no cards or shop.');
     $('sfxToggle').checked = s.sfxOn;
     $('sfxVolume').value = s.sfxVol;
     $('musicToggle').checked = s.musicOn;
@@ -2234,7 +2234,7 @@
       E.saveSettings({ coachMode: novice, advancedTrading: !novice });
       render();
       renderSettingsControls();
-      toast(novice ? '已切换到新手模式。' : '已切换到困难模式：完整下单与专业术语。');
+      toast(novice ? '已切换到简单模式。' : '已切换到困难模式：真实外汇，不使用卡牌和商店。');
     });
     $('sfxToggle').addEventListener('change', event => {
       E.saveSettings({ sfxOn: event.target.checked });
