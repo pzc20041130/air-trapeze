@@ -3,10 +3,10 @@
   'use strict';
 
   const SETTINGS_KEY = 'af-settings-v1';
-  let lang = 'zh';
+  let lang = 'en';
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null') || {};
-    lang = saved.language === 'en' ? 'en' : 'zh';
+    lang = saved.language === 'zh' ? 'zh' : 'en';
   } catch (_) {}
 
   const EN_EVENTS = {

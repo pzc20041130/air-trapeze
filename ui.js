@@ -5,7 +5,7 @@
   const $ = id => document.getElementById(id);
   const D = window.FXData;
   const E = window.FXEngine;
-  const DEFAULT_SETTINGS = { nickname: '大肥鱼', language: 'zh', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard' };
+  const DEFAULT_SETTINGS = { nickname: '大肥鱼', language: 'en', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard' };
 
   /* 结算语录：每局收手或穿仓时随机抽一条。和网页上的 Desk notes 是同一批。 */
   const SETTLE_QUOTES = [
@@ -1856,7 +1856,7 @@
     [...$('newsFreqSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.freq === s.newsFreq));
     [...$('themeSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.theme === s.theme));
     [...$('difficultySeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.difficulty === s.difficulty));
-    [...$('languageSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.language === (s.language || 'zh')));
+    [...$('languageSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.language === (s.language || 'en')));
     $('difficultyHint').textContent = s.difficulty === 'safe'
       ? '安全网：最高 20×，不开放贷款，不出现「最后一把」'
       : '标准：最高 100×，开放贷款，会出现「最后一把」';
@@ -2288,7 +2288,7 @@
     $('languageSeg').addEventListener('click', event => {
       const btn = event.target.closest('button[data-language]');
       if (!btn) return;
-      if (btn.dataset.language === (E.settings.language || 'zh')) return;
+      if (btn.dataset.language === (E.settings.language || 'en')) return;
       E.saveSettings({ language: btn.dataset.language });
       location.reload();
     });
