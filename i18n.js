@@ -3,7 +3,7 @@
   'use strict';
 
   const SETTINGS_KEY = 'af-settings-v1';
-  const LANG_MIGRATION_KEY = 'af-language-default-en-v1';
+  const LANG_MIGRATION_KEY = 'af-language-default-en-v2';
   let lang = 'en';
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null') || {};
