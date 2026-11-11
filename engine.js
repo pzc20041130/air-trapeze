@@ -12,7 +12,7 @@
   const BOARD_KEY = 'af-board-v1';
   const CASES_KEY = 'af-cases-v1';
   const ENDINGS_KEY = 'af-endings-v1';
-  const DEFAULT_SETTINGS = { nickname: '大肥鱼', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard', coachMode: true };
+  const DEFAULT_SETTINGS = { nickname: '大肥鱼', language: 'zh', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard', coachMode: true };
   const NEWS_FREQ_TICKS = { low: [40, 70], mid: [12, 22], high: [5, 10] };
   const REAL_MAX_SPAN = 600;
   const todayKey = () => new Date().toLocaleDateString('en-CA');

@@ -842,6 +842,27 @@ html[data-theme="night"] .loan-actions button:hover:not(:disabled) { background:
 #modalMessage { white-space: pre-line; }
 .modal-detail { margin-top: 12px; font-size: 12px; color: var(--text-deep); font-weight: 700; }
 .modal-detail.preline { white-space: pre-line; text-align: left; line-height: 1.8; font-size: 12px; }
+/* 结算语录：每次收手或穿仓随机一句，和网页上的 Desk notes 同源。 */
+.modal-quote {
+  margin: 14px 0 2px;
+  padding: 4px 0 4px 14px;
+  border-left: 3px solid #b8dbca;
+  text-align: left;
+}
+.modal-quote.hidden { display: none; }
+.modal-quote p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-deep);
+}
+.modal-quote cite {
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
 .modal-input-wrap { margin-top: 14px; display: grid; gap: 7px; }
 .modal-input-wrap label { font-size: 11px; color: var(--text-muted); }
 .modal-risk-actions { margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

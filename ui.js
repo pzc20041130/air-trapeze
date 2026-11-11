@@ -5,7 +5,31 @@
   const $ = id => document.getElementById(id);
   const D = window.FXData;
   const E = window.FXEngine;
-  const DEFAULT_SETTINGS = { nickname: '大肥鱼', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard' };
+  const DEFAULT_SETTINGS = { nickname: '大肥鱼', language: 'zh', advancedTrading: false, sfxOn: true, sfxVol: 70, musicOn: false, musicVol: 60, newsOn: true, newsFreq: 'mid', theme: 'day', difficulty: 'standard' };
+
+  /* 结算语录：每局收手或穿仓时随机抽一条。和网页上的 Desk notes 是同一批。 */
+  const SETTLE_QUOTES = [
+    { text: 'In the short run, the market is a voting machine but in the long run, it is a weighing machine.', who: 'Benjamin Graham · Security Analysis, 1934' },
+    { text: 'Price is what you pay. Value is what you get.', who: 'Warren Buffett · letter to shareholders, 2008' },
+    { text: 'Be fearful when others are greedy, and greedy when others are fearful.', who: 'Warren Buffett · letter to shareholders, 1986' },
+    { text: 'The investor\u2019s chief problem \u2014 and even his worst enemy \u2014 is likely to be himself.', who: 'Benjamin Graham · The Intelligent Investor, 1949' },
+    { text: 'The big money is not in the buying and the selling, but in the waiting.', who: 'Charlie Munger · widely attributed' },
+    { text: 'Know what you own, and know why you own it.', who: 'Peter Lynch · One Up on Wall Street, 1989' },
+    { text: 'The four most dangerous words in investing are: \u201cthis time it\u2019s different.\u201d', who: 'John Templeton · widely attributed' },
+    { text: 'The market can remain irrational longer than you can remain solvent.', who: 'John Maynard Keynes · widely attributed' },
+    { text: 'October. This is one of the peculiarly dangerous months to speculate in stocks.', who: 'Mark Twain · Pudd\u2019nhead Wilson, 1894' },
+    { text: 'It\u2019s not whether you\u2019re right or wrong that\u2019s important, but how much money you make when you\u2019re right and how much you lose when you\u2019re wrong.', who: 'George Soros · The Alchemy of Finance, 1987' },
+    { text: 'Don\u2019t look for the needle in the haystack. Just buy the haystack!', who: 'John C. Bogle · The Little Book of Common Sense Investing, 2007' },
+    { text: '\u8d35\u51fa\u5982\u7caa\u571f\uff0c\u8d31\u53d6\u5982\u73e0\u7389\u3002', who: '\u8ba1\u7136 \u00b7 \u300a\u53f2\u8bb0\u00b7\u8d27\u6b96\u5217\u4f20\u300b' },
+    { text: '\u8d22\u4e0d\u5165\u6025\u95e8\u3002', who: '\u4e2d\u56fd\u4fd7\u8bed' },
+    { text: 'Risk comes from not knowing what you are doing.', who: 'Warren Buffett · widely attributed' },
+    { text: 'You can\u2019t predict. You can prepare.', who: 'Howard Marks · Oaktree client memo, 2001' },
+    { text: 'There is nothing new in Wall Street. There can\u2019t be, because speculation is as old as the hills.', who: 'Jesse Livermore · Reminiscences of a Stock Operator, 1923' },
+  ];
+
+  function pickSettleQuote() {
+    return SETTLE_QUOTES[Math.floor(Math.random() * SETTLE_QUOTES.length)];
+  }
 
   let historyExpanded = false;
   let tutorialStep = 0;
@@ -1018,6 +1042,10 @@
     $('modalMessage').textContent = options.message || '';
     $('modalDetail').textContent = options.detail || '';
     $('modalDetail').classList.toggle('preline', !!options.preline);
+    const settleQuote = options.quote || null;
+    $('modalQuote').classList.toggle('hidden', !settleQuote);
+    $('modalQuoteText').textContent = settleQuote ? settleQuote.text : '';
+    $('modalQuoteWho').textContent = settleQuote ? settleQuote.who : '';
     $('modalExtraBtn').classList.toggle('hidden', !options.extraText);
     $('modalExtraBtn').textContent = options.extraText || '';
     $('modalInputWrap').classList.toggle('hidden', !options.input);
@@ -1148,6 +1176,7 @@
         cancelText: '先看看',
         extraText: '查看病历库',
         extraAction: () => { closeModal(); openCases(); },
+        quote: pickSettleQuote(),
         action: restartAfterSettlement
       });
       return;
@@ -1175,6 +1204,7 @@
       cancelText: '先看看',
       extraText: '查看病历库',
       extraAction: () => { closeModal(); openCases(); },
+      quote: pickSettleQuote(),
       action: restartAfterSettlement
     });
   }
@@ -1309,7 +1339,9 @@
     $('endingsSummary').textContent = `已解锁 ${unlocked} / ${items.length} · 每个结局都是一次落地方式`;
     const root = $('endingsList');
     root.replaceChildren();
-    const order = ['通用', '房租', '还债', '裁员'];
+    const order = window.FX_I18N?.isEnglish
+      ? ['General', 'Rent', 'Debt', 'Layoff']
+      : ['通用', '房租', '还债', '裁员'];
     order.forEach(group => {
       const groupItems = items.filter(([, item]) => (item.group || '其他') === group);
       if (!groupItems.length) return;
@@ -1784,6 +1816,7 @@
     [...$('newsFreqSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.freq === s.newsFreq));
     [...$('themeSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.theme === s.theme));
     [...$('difficultySeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.difficulty === s.difficulty));
+    [...$('languageSeg').children].forEach(btn => btn.classList.toggle('active', btn.dataset.language === (s.language || 'zh')));
     $('difficultyHint').textContent = s.difficulty === 'safe'
       ? '安全网：最高 20×，不开放贷款，不出现「最后一把」'
       : '标准：最高 100×，开放贷款，会出现「最后一把」';
@@ -2210,6 +2243,14 @@
       applyTheme(E.settings.theme);
       renderSettingsControls();
       drawChart();
+    });
+
+    $('languageSeg').addEventListener('click', event => {
+      const btn = event.target.closest('button[data-language]');
+      if (!btn) return;
+      if (btn.dataset.language === (E.settings.language || 'zh')) return;
+      E.saveSettings({ language: btn.dataset.language });
+      location.reload();
     });
 
     $('difficultySeg').addEventListener('click', event => {

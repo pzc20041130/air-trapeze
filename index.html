@@ -12,6 +12,11 @@
   <link rel="apple-touch-icon" href="./assets/icon.png">
   <link rel="stylesheet" href="./styles.css?v=1.0.0">
   <script defer src="./data.js?v=1.0.0"></script>
+  <script defer src="./i18n/en-news.js?v=1.0.0"></script>
+  <script defer src="./i18n/en-data.js?v=1.0.0"></script>
+  <script defer src="./i18n/en-extra.js?v=1.0.0"></script>
+  <script defer src="./i18n/en-ui.js?v=1.0.0"></script>
+  <script defer src="./i18n.js?v=1.0.0"></script>
   <script defer src="./chart.js?v=1.0.0"></script>
   <script defer src="./audio.js?v=1.0.0"></script>
   <script defer src="./engine.js?v=1.0.0"></script>
@@ -267,6 +272,10 @@
       <h2 id="modalTitle"></h2>
       <p id="modalMessage"></p>
       <div id="modalDetail" class="modal-detail"></div>
+      <blockquote id="modalQuote" class="modal-quote hidden">
+        <p id="modalQuoteText"></p>
+        <cite id="modalQuoteWho"></cite>
+      </blockquote>
       <div id="modalInputWrap" class="modal-input-wrap hidden">
         <label id="modalInputLabel" for="modalInput"></label>
         <div class="input-shell"><span>$</span><input id="modalInput" type="number" min="1" step="1" inputmode="decimal"></div>
@@ -324,6 +333,8 @@
         <div class="settings-row"><div class="settings-label">音乐<small>不内置音乐，导入本地音频文件后循环播放</small></div><label class="switch"><input id="musicToggle" type="checkbox"><span class="slider"></span></label></div>
         <div class="settings-row"><div class="settings-label">音乐音量</div><input id="musicVolume" class="vol-slider" type="range" min="0" max="100" step="1"></div>
         <div class="settings-row settings-col"><div class="settings-label">导入本地音乐<small id="musicStatus">尚未导入音乐（音频仅保存在本机浏览器）</small></div><div class="music-actions"><label class="outline-button music-file-btn" for="musicFile">选择文件<input id="musicFile" type="file" accept="audio/*"></label><button id="musicPreviewBtn" class="outline-button" type="button">试听</button><button id="musicClearBtn" class="outline-button" type="button">清除</button></div></div>
+        <hr class="settings-divider">
+        <div class="settings-row"><div class="settings-label">语言 / Language<small>切换后页面会刷新</small></div><div class="seg-mini" id="languageSeg" role="group" aria-label="Language"><button type="button" data-language="zh">中文</button><button type="button" data-language="en">English</button></div></div>
         <hr class="settings-divider">
         <div class="settings-row"><div class="settings-label">难度模式<small id="coachSettingHint">新手模式：只看涨/跌，固定 $100/5×，目标更低</small></div><div class="seg-mini" id="gameModeSeg" role="group" aria-label="新手或困难模式"><button type="button" data-game-mode="novice">新手模式</button><button type="button" data-game-mode="hard">困难模式</button></div></div>
         <div class="settings-row"><div class="settings-label">市场新闻<small>跑马灯与滑入快讯，关闭后不再生成模拟新闻</small></div><label class="switch"><input id="newsToggle" type="checkbox"><span class="slider"></span></label></div>
