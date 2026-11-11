@@ -3,9 +3,15 @@
   'use strict';
 
   const SETTINGS_KEY = 'af-settings-v1';
+  const LANG_MIGRATION_KEY = 'af-language-default-en-v1';
   let lang = 'en';
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null') || {};
+    if (localStorage.getItem(LANG_MIGRATION_KEY) !== '1') {
+      saved.language = 'en';
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved));
+      localStorage.setItem(LANG_MIGRATION_KEY, '1');
+    }
     lang = saved.language === 'zh' ? 'zh' : 'en';
   } catch (_) {}
 
@@ -493,6 +499,7 @@
       if (meta) meta.setAttribute('content', 'Air Trapeze · Vertigo Observation Room — a black-comedy forex trading game with crisis archives.');
     }
     apply(document.body);
+    document.documentElement.classList.remove('i18n-pending');
     let scheduled = false;
     const observer = new MutationObserver(() => {
       if (scheduled) return;
