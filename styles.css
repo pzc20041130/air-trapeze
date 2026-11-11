@@ -618,6 +618,8 @@ body.coach-mode .news-prompt { display: none !important; }
 .strategy-reroll { width: 100%; margin-top: 8px; padding: 8px; font-size: 9px; color: var(--accent-deep); }
 .strategy-reroll:disabled { opacity: 0.4; }
 .strategy-codex-modal { width: min(820px, 94vw); }
+.strategy-codex-hint { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--tint-green); color: var(--green-text); font-size: 10px; line-height: 1.55; }
+.strategy-codex-hint:empty { display: none; }
 .strategy-codex-list { margin-top: 14px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
 .strategy-codex-section + .strategy-codex-section { margin-top: 14px; }
 .strategy-codex-section h3 { font-size: 11px; color: var(--text-deep); }

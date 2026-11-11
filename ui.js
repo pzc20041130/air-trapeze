@@ -494,24 +494,33 @@
     const root = $('strategyCodexList');
     const deck = new Set((E.state.contract?.strategyDeck) || []);
     const styles = [
-      ['trend', '趋势'],
-      ['news', '消息'],
-      ['contrarian', '逆势'],
-      ['defense', '防守']
+      ['trend', L('趋势', 'Trend')],
+      ['news', L('消息', 'News')],
+      ['contrarian', L('逆势', 'Contrarian')],
+      ['defense', L('防守', 'Defense')]
     ];
+    const contract = E.state.contract;
+    const hint = E.settings.coachMode
+      ? L('卡牌和策略商店只在困难模式开放。去「设置 → 难度模式」切到困难模式。', 'Cards and the strategy shop are available in Hard Mode. Go to Settings → Difficulty Mode and switch to Hard.')
+      : !contract || contract.id === 'free'
+        ? L('图鉴随时可看；先签一份非自由模式的合同，才会出现起始策略和交易台。', 'The codex is always available. Sign a non-Free contract to unlock the starting strategy and trading desk.')
+        : !(contract.strategyDeck || []).length
+          ? L('先选一张起始策略；每幕事件结束后进入策略商店。', 'Pick a starting strategy first. The strategy shop opens after each act event.')
+          : L('每幕事件结束后进入策略商店。图鉴随时可看。', 'The strategy shop opens after each act event. The codex is always available.');
+    $('strategyCodexHint').textContent = hint;
     root.replaceChildren();
     styles.forEach(([style, label]) => {
       const cards = (D.STRATEGY_CARDS || []).filter(card => card.style === style);
       const section = document.createElement('section');
       section.className = 'strategy-codex-section';
-      section.innerHTML = `<h3><span class="strategy-style style-${style}">${label}</span> ${cards.length} 张</h3>`;
+      section.innerHTML = `<h3><span class="strategy-style style-${style}">${label}</span> ${cards.length} ${L('张', 'cards')}</h3>`;
       const grid = document.createElement('div');
       grid.className = 'strategy-codex-grid';
       cards.forEach(card => {
         const owned = deck.has(card.id);
         const item = document.createElement('div');
         item.className = 'strategy-codex-card' + (owned ? ' owned' : '');
-        item.innerHTML = `<strong>${card.name}${card.tier === 3 ? ' <span class="strategy-tier">高费</span>' : ''}</strong><small>${card.desc}</small><em>${owned ? '当前交易台' : `$${card.cost}`}</em>`;
+        item.innerHTML = `<strong>${card.name}${card.tier === 3 ? ` <span class="strategy-tier">${L('高费', 'High-cost')}</span>` : ''}</strong><small>${card.desc}</small><em>${owned ? L('当前交易台', 'Current desk') : `$${card.cost}`}</em>`;
         grid.append(item);
       });
       section.append(grid);
@@ -2299,6 +2308,7 @@
     $('shareModal').addEventListener('click', event => { if (event.target === $('shareModal')) $('shareModal').classList.add('hidden'); });
 
     $('achBtn').addEventListener('click', () => { renderAchBook(); $('achModal').classList.remove('hidden'); window.FXAudio?.click(); });
+    $('codexBtn').addEventListener('click', () => { openStrategyCodex(); window.FXAudio?.click(); });
     $('achOk').addEventListener('click', () => $('achModal').classList.add('hidden'));
     $('achClose').addEventListener('click', () => $('achModal').classList.add('hidden'));
 
