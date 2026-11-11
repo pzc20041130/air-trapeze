@@ -1162,28 +1162,41 @@
   }
 
   function showSettlementModal(summary) {
+    const en = isEN();
     const bankrupt = summary.reason === 'bankrupt';
-    const player = E.settings.nickname || '大肥鱼';
+    const nick = E.settings.nickname || '大肥鱼';
+    const player = en && nick === '大肥鱼' ? 'Big Fat Fish' : nick;
     const endingTitle = summary.endingTitle || '';
+    const labels = {
+      confirm: en ? 'Play again' : '再来一局',
+      cancel: en ? 'Not now' : '先看看',
+      extra: en ? 'Open the records' : '查看病历库'
+    };
     if (summary.coachMode) {
       const contract = summary.contractTitle
-        ? `合同：${summary.contractTitle} · ${summary.contractDone ? '完成' : '没完成'}\n`
+        ? (en
+          ? `Contract: ${summary.contractTitle} · ${summary.contractDone ? 'done' : 'not done'}\n`
+          : `合同：${summary.contractTitle} · ${summary.contractDone ? '完成' : '没完成'}\n`)
         : '';
-      const ending = endingTitle ? `结局：${endingTitle}\n` : '';
+      const ending = endingTitle ? (en ? `Ending: ${endingTitle}\n` : `结局：${endingTitle}\n`) : '';
       openModal({
         icon: bankrupt ? '✕' : '■',
         loss: bankrupt || summary.equity <= 0,
-        title: bankrupt ? `账户穿仓 · ${endingTitle || '本局结束'}` : `收手离场 · ${endingTitle || '本局结束'}`,
+        title: bankrupt
+          ? (en ? `Account Blown · ${endingTitle || 'Run Over'}` : `账户穿仓 · ${endingTitle || '本局结束'}`)
+          : (en ? `Cashed Out · ${endingTitle || 'Run Over'}` : `收手离场 · ${endingTitle || '本局结束'}`),
         message: summary.endingText
           ? summary.endingText
           : bankrupt
-            ? `${player}，行情穿过了押金，本局结束。`
-            : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`,
-        detail: `${contract}${ending}最终权益 ${D.money(summary.equity)}\n教练模式：目标降级，不参与标准评级和流派。`,
+            ? (en ? `${player}, the market went through your margin. This run is over.` : `${player}，行情穿过了押金，本局结束。`)
+            : (en ? `${player}, every position is settled at the current price. You walk away with ${D.money(summary.equity)}.` : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`),
+        detail: en
+          ? `${contract}${ending}Final equity ${D.money(summary.equity)}\nCoach mode: lower targets, no standard grade and no style tags.`
+          : `${contract}${ending}最终权益 ${D.money(summary.equity)}\n教练模式：目标降级，不参与标准评级和流派。`,
         preline: true,
-        confirm: '再来一局',
-        cancelText: '先看看',
-        extraText: '查看病历库',
+        confirm: labels.confirm,
+        cancelText: labels.cancel,
+        extraText: labels.extra,
         extraAction: () => { closeModal(); openCases(); },
         quote: pickSettleQuote(),
         action: restartAfterSettlement
@@ -1191,27 +1204,36 @@
       return;
     }
     const contractLine = summary.contractTitle
-      ? `合同：${summary.contractTitle} · ${summary.contractDone ? '已完成' : '未完成'}${summary.grade ? ` · 评级 ${summary.grade}` : ''}\n`
+      ? (en
+        ? `Contract: ${summary.contractTitle} · ${summary.contractDone ? 'complete' : 'incomplete'}${summary.grade ? ` · grade ${summary.grade}` : ''}\n`
+        : `合同：${summary.contractTitle} · ${summary.contractDone ? '已完成' : '未完成'}${summary.grade ? ` · 评级 ${summary.grade}` : ''}\n`)
       : '';
-    const endingLine = endingTitle ? `结局：${endingTitle}\n` : '';
-    const environmentLine = summary.environmentTitle ? `环境：${summary.environmentTitle}\n` : '';
-    const styleLine = summary.playstyle?.length ? `本局流派：${summary.playstyle.map(item => item.label).join(' / ')}\n` : '';
+    const endingLine = endingTitle ? (en ? `Ending: ${endingTitle}\n` : `结局：${endingTitle}\n`) : '';
+    const environmentLine = summary.environmentTitle
+      ? (en ? `Market: ${summary.environmentTitle}\n` : `环境：${summary.environmentTitle}\n`)
+      : '';
+    const styleLine = summary.playstyle?.length
+      ? (en ? `Style this run: ${summary.playstyle.map(item => item.label).join(' / ')}\n` : `本局流派：${summary.playstyle.map(item => item.label).join(' / ')}\n`)
+      : '';
+    const detail = en
+      ? `${contractLine}${environmentLine}${styleLine}${endingLine}Final equity ${D.money(summary.equity)}\nPeak ${D.money(summary.peak)}\nMax drawdown ${D.money(summary.drawdown)}\nLoan due ${D.money(summary.debt)}${summary.airborneLine ? ` · Trapeze line ${D.money(summary.airborneLine)}` : ''}\n"One Last Trade" × ${summary.lastOneCount}\nDiagnosis: ${summary.diagnosis}`
+      : `${contractLine}${environmentLine}${styleLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`;
     openModal({
       icon: bankrupt ? '✕' : '■',
       loss: bankrupt || summary.equity <= 0,
       title: bankrupt
-        ? `账户已穿仓 · ${endingTitle || '本局结案'}`
-        : `收手离场 · ${endingTitle || '本局结束'}`,
+        ? (en ? `Account Blown · ${endingTitle || 'Case Closed'}` : `账户已穿仓 · ${endingTitle || '本局结案'}`)
+        : (en ? `Cashed Out · ${endingTitle || 'Run Over'}` : `收手离场 · ${endingTitle || '本局结束'}`),
       message: summary.endingText
         ? summary.endingText
         : bankrupt
-          ? `${player}，行情穿过了保证金，本局结束。好消息是，游戏结束了。`
-          : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`,
-      detail: `${contractLine}${environmentLine}${styleLine}${endingLine}最终权益 ${D.money(summary.equity)}\n本局峰值 ${D.money(summary.peak)}\n最大回撤 ${D.money(summary.drawdown)}\n待还贷款 ${D.money(summary.debt)}${summary.airborneLine ? ` · 空中飞人线 ${D.money(summary.airborneLine)}` : ''}\n「最后一次」× ${summary.lastOneCount}\n诊断：${summary.diagnosis}`,
+          ? (en ? `${player}, the market went through your margin. The good news: the game is over.` : `${player}，行情穿过了保证金，本局结束。好消息是，游戏结束了。`)
+          : (en ? `${player}, every position is settled at the current price. You walk away with ${D.money(summary.equity)}.` : `${player}，所有持仓已按当前价格结算。你带走了 ${D.money(summary.equity)}。`),
+      detail,
       preline: true,
-      confirm: '再来一局',
-      cancelText: '先看看',
-      extraText: '查看病历库',
+      confirm: labels.confirm,
+      cancelText: labels.cancel,
+      extraText: labels.extra,
       extraAction: () => { closeModal(); openCases(); },
       quote: pickSettleQuote(),
       action: restartAfterSettlement
