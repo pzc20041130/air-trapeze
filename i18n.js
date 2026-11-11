@@ -150,6 +150,7 @@
     '这一局，你打算怎么活？': 'How do you plan to survive this run?',
     '这份合同不开放借款。先按合同目标走。': 'This contract does not allow borrowing. Work toward the contract target.',
     '四个流派，十二张策略。交易台最多放 3 张；同流派 2 张触发协同。': 'Four styles, twelve strategies. Up to 3 cards on the desk; 2 cards of the same style trigger a synergy.',
+    '每幕刷新 4 张交易策略。买一张装进交易台；刷新 $100，直接从可用现金（本金）扣除。': 'Four strategy cards per act. Buy one for your desk; a reroll costs $100, deducted directly from your available cash (principal).',
     '合同只在模拟模式生效。目标完成后可以收手，也可以继续贪；失败照样进病历。': 'Contracts apply only in Sim mode. Hit the goal and you can cash out or keep pushing; fail and it still goes in your records.',
     '上一份': 'Previous',
     '下一份': 'Next',

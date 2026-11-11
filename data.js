@@ -594,11 +594,11 @@
     },
     {
       id: 'news-macro', name: '宏观研究员', style: 'news', styleLabel: '消息', tier: 2, cost: 700,
-      desc: '每幕第一次刷新策略免费。\n2 张消息：新闻积分再 +1。'
+      desc: '每幕第一次刷新策略半价。\n2 张消息：新闻积分再 +1。'
     },
     {
       id: 'news-oracle', name: '消息先知', style: 'news', styleLabel: '消息', tier: 3, cost: 1200,
-      desc: '新闻积分 +1/级；每幕第一次刷新免费。\n2 张消息：再 +1。'
+      desc: '新闻积分 +1/级；每幕第一次刷新半价。\n2 张消息：再 +1。'
     },
     {
       id: 'contrarian-revert', name: '均值回归', style: 'contrarian', styleLabel: '逆势', tier: 1, cost: 600,

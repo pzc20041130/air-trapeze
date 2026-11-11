@@ -540,13 +540,13 @@
     const offers = (contract.strategyOffers || []).length ? contract.strategyOffers : strategyOfferCache;
     if ((contract.strategyOffers || []).length) strategyOfferCache = contract.strategyOffers;
     else if (strategyOfferCache.length) contract.strategyOffers = [...strategyOfferCache];
-    const freeReroll = E.strategyDeckCards().some(card => card.id === 'news-macro' || card.id === 'news-oracle') && (contract.strategyRerolls || 0) === 0;
+    const rerollCost = E.strategyRerollCost ? E.strategyRerollCost() : 100;
     const levelText = level => level > 1 ? ` ${'I'.repeat(level)}` : '';
     const roman = ['', 'I', 'II', 'III'][Math.max(1, Math.min(3, Number(contract.shopLevel) || 1))];
     root.innerHTML = `<div class="strategy-shop-head"><strong>策略商店 · 研究等级 ${roman}</strong><span>交易台 ${deck.length}/3 <button type="button" id="strategyCodexBtn" class="text-button">图鉴</button></span></div>
       <div class="strategy-shop-deck">${[0,1,2].map(i => deck[i] ? `<span>${deck[i].name}${levelText(deck[i].level)} <button type="button" class="strategy-sell" data-sell="${deck[i].id}" title="卖出">×</button></span>` : '<span class="empty">空槽</span>').join('')}</div>
       <div class="strategy-offers"></div>
-      <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · ${freeReroll ? '免费' : '$100'}</button>`;
+      <button type="button" id="strategyReroll" class="outline-button strategy-reroll"${contract.strategyBought ? ' disabled' : ''}>刷新策略 · $${rerollCost}</button>`;
     const offersRoot = root.querySelector('.strategy-offers');
     offers.forEach(cardId => {
       const card = (D.STRATEGY_CARDS || []).find(item => item.id === cardId);

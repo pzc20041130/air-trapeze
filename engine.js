@@ -392,7 +392,7 @@
   function refreshStrategyOffers() {
     const contract = state.contract;
     if (!contract || !settings.coachMode) return [];
-    contract.strategyOffers = drawStrategyCards(3, [], strategyShopPool());
+    contract.strategyOffers = drawStrategyCards(4, [], strategyShopPool());
     contract.strategyBought = false;
     save();
     emit();
@@ -402,10 +402,10 @@
   function rerollStrategyOffers() {
     const contract = state.contract;
     if (!contract || !contract.pendingShop || contract.strategyBought) return { ok: false, message: '现在不能刷新。' };
-    const cost = strategyFreeReroll() ? 0 : 100;
+    const cost = strategyRerollCost();
     if (state.cash < cost) return { ok: false, message: `刷新需要 $${cost}。` };
     state.cash -= cost;
-    contract.strategyOffers = drawStrategyCards(3, [], strategyShopPool());
+    contract.strategyOffers = drawStrategyCards(4, [], strategyShopPool());
     contract.strategyRerolls = (contract.strategyRerolls || 0) + 1;
     save();
     emit();
@@ -484,8 +484,9 @@
     return rate;
   }
 
-  function strategyFreeReroll() {
-    return (strategyHasCard('news-macro') || strategyHasCard('news-oracle')) && (state.contract?.strategyRerolls || 0) === 0;
+  function strategyRerollCost() {
+    const discount = (strategyHasCard('news-macro') || strategyHasCard('news-oracle')) && (state.contract?.strategyRerolls || 0) === 0 ? 50 : 0;
+    return 100 - discount;
   }
 
   function strategyContrarianCount() {
@@ -2346,6 +2347,7 @@
     chooseStartingStrategy,
     refreshStrategyOffers,
     rerollStrategyOffers,
+    strategyRerollCost,
     buyStrategyCard,
     sellStrategyCard,
     strategyPrice,

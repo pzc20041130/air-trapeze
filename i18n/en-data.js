@@ -112,12 +112,12 @@
       'news-macro': {
         name: 'Macro Analyst',
         styleLabel: 'News',
-        desc: 'The first strategy refresh in each act is free.\n2 News cards: +1 more news point.'
+        desc: 'The first strategy refresh in each act costs half price.\n2 News cards: +1 more news point.'
       },
       'news-oracle': {
         name: 'News Oracle',
         styleLabel: 'News',
-        desc: '+1 news point per level; the first refresh in each act is free.\n2 News cards: +1 more.'
+        desc: '+1 news point per level; the first refresh in each act is half price.\n2 News cards: +1 more.'
       },
       'contrarian-revert': {
         name: 'Mean Reversion',
